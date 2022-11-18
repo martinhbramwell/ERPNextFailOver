@@ -42,7 +42,7 @@ fi;
 declare PKG="tree";
 dpkg-query -l ${PKG} &>/dev/null || sudo apt -y install ${PKG};
 
-echo "Will execute : '${EVENT_TASK}'";
+echo "Run-On-Save will execute : '${EVENT_TASK}'";
 listVariables;
 
 doIt;

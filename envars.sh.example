@@ -1,0 +1,63 @@
+                        #########################################
+                        ###                                   ###
+                        ###       Replication Parameters      ###
+                        ###                                   ###
+                        #########################################
+
+###############################
+###                         ###
+###         Common          ###
+###                         ###
+###############################
+
+export USE_HOST_ALIAS="no";                                          # If "yes", use *_HOST_ALIAS instead of *_HOST_URL, *_HOST_USR & *_HOST_KEY
+export ALLOW_SUDO_ASKPASS_CREATION="no";                              # If "yes", a temporary SUDO_ASKPASS environment variable will be created in '/dev/shm'
+                                                                      #        which avoids typing passwords every time
+
+
+###############################
+###                         ###
+###          Master         ### 
+###                         ###
+###############################
+
+export MASTER_HOST_URL="erp.erpnext.host";                            # Domain name of host
+export MASTER_HOST_USR="adm";                                         # ERPNext user name
+export MASTER_HOST_PWD="password#1";                                  # ERPNext user password
+export MASTER_HOST_KEY="adm_erp_erpnext_host";                        # ERPNext user SSH key
+export MASTER_HOST_ALIAS="erpht";                                     # SSH host alias name
+export MASTER_BENCH_HOME=/home/${MASTER_HOST_USR};                    # Directory where the Frappe Bench is installed
+export MASTER_BENCH_NAME=frappe-bench-ERPHT;                          # The name given to the Frappe Bench directory
+export MASTER_BENCH_PATH=${MASTER_BENCH_HOME}/${MASTER_BENCH_NAME};   # Full path to Bench directory
+
+
+
+###############################
+###                         ###
+###         Slave           ###
+###                         ###
+###############################
+
+export SLAVE_HOST_URL="loso.erpnext.host";                            # Domain name of host
+export SLAVE_HOST_USR="admin";                                        # ERPNext user name
+export SLAVE_HOST_PWD="password#2";                                   # ERPNext user password
+export SLAVE_HOST_KEY="admin_loso_erpnext_host";                      # ERPNext user SSH key
+export SLAVE_HOST_ALIAS="derpht";                                     # SSH host alias name
+export SLAVE_BENCH_HOME=/home/${SLAVE_HOST_USR};                      # Directory where the Frappe Bench is installed
+export SLAVE_BENCH_NAME=frappe-bench-DERPHT;                          # The name given to the Frappe Bench directory
+export SLAVE_BENCH_PATH=${SLAVE_BENCH_HOME}/${SLAVE_BENCH_NAME};      # Full path to Bench directory
+
+export SLAVE_DB_PWD="lpassword#3";                             # Replicator slave password         
+
+
+
+###############################
+###                         ###
+###       For Testing       ###
+###                         ###
+###############################
+
+# export DRY_RUN_ONLY="yes";                 not yet implemented        # If "yes", run checks but make no permanent changes 
+export TEST_CONNECTIVITY="yes"                                        # If "yes", the ability to log on and execute a command will be tested for each host.
+export REPEAT_SLAVE_WITHOUT_MASTER="no";                              # If "yes", skips uploads to slave and all calls to and downloads from master
+export UPLOAD_MASTER_BACKUP="yes";                                    # If "yes", upload master files to slave (ignored if REPEAT_SLAVE_WITHOUT_MASTER="no")

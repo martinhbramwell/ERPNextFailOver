@@ -1,0 +1,24 @@
+#####   For configuring erp.erpnext.host  ( Digital Ocean :: 24854gd2 )
+# -----------------------------------------------------------------------
+# Alias configuration: 'erpht' «begins»
+# Alias 'erpht' binds to remote user 'adm@erp.erpnext.host'
+Host erpht
+  User adm
+  HostName erp.erpnext.host
+  ServerAliveInterval 120
+  ServerAliveCountMax 20
+  IdentityFile /home/you/.ssh/adm_erp_erpnext_host
+# Alias configuration: 'erpht' «ends»
+
+#####   For configuring dev.erpnext.host  ( Contabo :: 24854gd2 )
+# -----------------------------------------------------------------------
+# Alias configuration: 'derpht' «begins»
+# Alias 'derpht' binds to remote user 'admin@dev.erpnext.host'
+Host derpht
+  User admin
+  HostName dev.erpnext.host
+  ServerAliveInterval 120
+  ServerAliveCountMax 20
+  IdentityFile /home/you/.ssh/admin_dev_erpnext_host
+# Alias configuration: 'derpht' «ends»
+

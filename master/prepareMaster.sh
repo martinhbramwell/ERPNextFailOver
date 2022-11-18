@@ -19,6 +19,9 @@ declare MARIADB_SCRIPT="setUpMaster.sql";
 function prepareMaster() {
   echo -e "\n\nPreparing master ...";
 
+  echo -e "Moving backup and restore handlers '${BACKUP_HANDLER}' to transfer directory '${TMP_DIR}/${MSTR_WRK}'";
+  cp -r ${BACKUP_RESTORE_PATH} ${TMP_DIR}/${MSTR_WRK};
+
   makeMasterTasks;
   makeMasterMariaDBScript;
   makeMasterMariaDBconfPatch;
@@ -27,14 +30,18 @@ function prepareMaster() {
     tar zcvf ${MSTR_WRK_FILES} ${MSTR_WRK} >/dev/null;
   popd >/dev/null
 
-  echo -e "Uploading Master tasks files '${MSTR_WRK_FILES}' to '${THE_MASTER}:${TMP_DIR}'"
+  echo -e "Uploading Master tasks files '${MSTR_WRK_FILES}' to '${THE_MASTER}:${TMP_DIR}'."
   scp ${TMP_DIR}/${MSTR_WRK_FILES} ${THE_MASTER}:${TMP_DIR} >/dev/null;
 
-  echo -e "Extracting content from uploaded file '${MSTR_WRK_FILES}' on Master ..."
+  echo -e "Extracting content from uploaded file '${MSTR_WRK_FILES}' on Master."
   ssh ${THE_MASTER} tar zxvf ${TMP_DIR}/${MSTR_WRK_FILES} -C /dev/shm >/dev/null;
 
-  echo -e "Executing script '${MSTR_JOB}' on Master"
-  ssh ${THE_MASTER} ${MSTR_WRK_DIR}/${MSTR_JOB};
+  echo -e "Executing script '${MSTR_JOB}' on Master."
+  ssh -t ${THE_MASTER} ${MSTR_WRK_DIR}/${MSTR_JOB};
+
+  # ls -la;
+  # echo -e "${pYELLOW}------------- prepareMaster Curtailed ---------------------${pDFLT}";
+  # exit;
 
 }
 

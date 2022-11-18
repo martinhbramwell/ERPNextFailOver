@@ -7,17 +7,10 @@ export THIS_SCRIPT=$( basename ${BASH_SOURCE} )
 
 function makeMasterMariaDBconfPatch () {
 
-  declare HOST=$(host ${MASTER_HOST_URL})
-  declare MASTER_IP_ADDR=${HOST#${MASTER_HOST_URL} has address }
   declare HOST_ALIAS=${MASTER_HOST_URL//./_}
 
-  echo -e " - Making MariaDB config patch :: ${MSTR_WRK_DIR}/${MSTR_PATCH_NAME}
+  echo -e " - Making MariaDB config patch :: '${MSTR_WRK_DIR}/${MSTR_PATCH_NAME}'.
   ";
-  # ${HOST}
-  # ${MASTER_IP_ADDR}
-  # ${HOST_ALIAS}
-  # ";
-
 
   cat << EOFMCP > ${MSTR_WRK_DIR}/${MSTR_PATCH_NAME}
 --- 50-server.cnf       2022-10-28 21:58:04.584379268 +0200
@@ -38,7 +31,7 @@ function makeMasterMariaDBconfPatch () {
 +log-basename=${HOST_ALIAS};
 +log-bin=/var/log/mysql/mariadb-bin.log
 +server_id=1
-+binlog-do-db=${ERPNEXT_SITE_DB}
++binlog-do-db=REPLACE_WITH_DATABASE_NAME
 +gtid-domain-id=1
  
  # Both location gets rotated by the cronjob.

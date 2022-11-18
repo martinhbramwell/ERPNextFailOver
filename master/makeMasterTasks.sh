@@ -6,13 +6,14 @@ export SCRIPT_NAME=$( basename ${0#-} );
 export THIS_SCRIPT=$( basename ${BASH_SOURCE} )
 
 function makeMasterTasks () {
-  echo -e " - Making Master Tasks script :: ${MSTR_WRK_DIR}/${MSTR_JOB}"
+  echo -e " - Making Master Tasks script :: ${MSTR_WRK_DIR}/${MSTR_JOB}."
   cat << EOFCT > ${MSTR_WRK_DIR}/${MSTR_JOB}
 #!/usr/bin/env bash
 #
 
-function ensure_XMLStarlet () {
-  declare PKG="xmlstarlet";
+export SCRIPT_DIR="\$( cd -- "\$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )";
+
+function ensurePkgIsInstalled () {
   if dpkg-query -l \${PKG} >/dev/null; then
     echo -e " - Found \${PKG} already installed";
   else
@@ -22,85 +23,168 @@ function ensure_XMLStarlet () {
 }
 
 function ensure_SUDO_ASKPASS () {
-  if [ -z \${SUDO_ASKPASS} ]; then
-    echo -e " - Master has no 'SUDO_ASKPASS' environment variable.";
-    if [ -f ${MSTR_WRK_DIR}/.supwdsh ]; then
-      echo -e "Found";
+  echo -e " - Testing 'SUDO_ASKPASS' capability. ( SUDO_ASKPASS = >\${SUDO_ASKPASS}< )";
+  if [[ "${ALLOW_SUDO_ASKPASS_CREATION}" == "yes" ]]; then
+    echo -e "    - Configuration allows ASKPASS creation.";
+    if [ -z ${MASTER_HOST_PWD} ]; then
+      echo -e "    - Configuration provides no password.";
+      return 1;
     else
-      echo -e "Not found";
-      if [[ "${ALLOW_SUDO_ASKPASS_CREATION}" == "yes" ]]; then
-        echo -e "Allowed";
-        if [ -z ${MASTER_HOST_PWD} ]; then
-          echo -e "No password";
-        else
-          echo -e "Found password";
-        fi;
-      else
-        echo -e "Denied";
-      fi;
+      echo -e "    - Found password in configuration file. Trying uploaded ASK_PASS emmitter.";
+      export SUDO_ASKPASS=${MSTR_WRK_DIR}/.supwd.sh;
     fi;
   else
-    echo -e " - Master has a 'SUDO_ASKPASS' environment variable.";
-    # declare TEST_RSLT=\$(sudo -A touch /etc/hostname);
-    sudo -A touch /etc/hostname;
-    if [ \$? -ne 0 ]; then
-      # echo -e "SUDO_ASKPASS ==> \${SUDO_ASKPASS}";
-      if [ ! -f \${SUDO_ASKPASS} ]; then
-        echo -e "${pRED}\n\n* * *          There is no file: '\${SUDO_ASKPASS}'                    * * * ${pDFLT}";
-      fi
-      return 1;
-    fi;
+    echo -e "    - SUDO_ASKPASS creation denied in configuration";
+    return 1;
+  fi;
+  # if [ -z \${SUDO_ASKPASS} ]; then
+  #   echo -e "    - Master has no pre-existing 'SUDO_ASKPASS' environment variable.";
+  #   if [[ "${ALLOW_SUDO_ASKPASS_CREATION}" == "yes" ]]; then
+  #     echo -e "    - Configuration allows ASKPASS creation.";
+  #     if [ -z ${MASTER_HOST_PWD} ]; then
+  #       echo -e "    - Configuration provides no password.";
+  #     else
+  #       echo -e "    - Found password in configuration file.";
+  #     fi;
+  #   else
+  #     echo -e "    - SUDO_ASKPASS creation denied in configuration";
+  #     return 1;
+  #   fi;
+  #   if [ -f ${MSTR_WRK_DIR}/.supwd.sh ]; then
+  #     echo -e "    - Found supplied 'ASKPASS' emitter script.";
+  #   else
+  #     echo -e "        Not found";
+  #   fi;
+  # else
+  #   echo -e "    - Master has a 'SUDO_ASKPASS' environment variable.  ( \${SUDO_ASKPASS}  )";
+  #   # declare TEST_RSLT=\$(sudo -A touch /etc/hostname);
+  #   sudo -A touch /etc/hostname;
+  #   if [ \$? -ne 0 ]; then
+  #     # echo -e "SUDO_ASKPASS ==> \${SUDO_ASKPASS}";
+  #     if [ ! -f \${SUDO_ASKPASS} ]; then
+  #       echo -e "${pRED}\n\n* * *          There is no file: '\${SUDO_ASKPASS}'                    * * * ${pDFLT}";
+  #     fi
+  #     return 1;
+  #   fi;
+  # fi;
+
+  # declare TEST_RSLT=\$(sudo -A touch /etc/hostname);
+  sudo -A touch /etc/hostname;
+  if [ \$? -ne 0 ]; then
+    # echo -e "SUDO_ASKPASS ==> \${SUDO_ASKPASS}";
+    if [ ! -f \${SUDO_ASKPASS} ]; then
+      echo -e "${pRED}\n\n* * *          There is no file: '\${SUDO_ASKPASS}'                    * * * ${pDFLT}";
+    fi
+    return 1;
+  fi;
+
+}
+
+function configureDBforReplication () {
+  echo -e " - Configuring MariaDB Master for replication";
+  echo -e "   - Getting database name for site '${MASTER_HOST_URL}' from '${MASTER_BENCH_PATH}/sites/${MASTER_HOST_URL}/${SITE_CONFIG}'.";
+
+  # jq -r . ${MASTER_BENCH_PATH}/sites/${MASTER_HOST_URL}/${SITE_CONFIG};
+
+  declare MASTER_DATABASE_NAME=\$(jq -r .db_name ${MASTER_BENCH_PATH}/sites/${MASTER_HOST_URL}/${SITE_CONFIG});
+
+  pushd ${MARIADB_CONFIG_DIR} >/dev/null;
+    echo -e "   - Providing 'binlog-do-db' with its value ("\${MASTER_DATABASE_NAME}"), in patch file '${MSTR_WRK_DIR}/${MSTR_PATCH_NAME}'.";
+    sed -i "s/.*REPLACE_WITH_DATABASE_NAME.*/+binlog-do-db=\${MASTER_DATABASE_NAME}/" ${MSTR_WRK_DIR}/${MSTR_PATCH_NAME};
+    # cat "${MSTR_WRK_DIR}/${MSTR_PATCH_NAME}";
+
+    echo -e "   - Patching '${MARIADB_CONFIG}' with '${MSTR_WRK_DIR}/${MSTR_PATCH_NAME}'.\n${pFAINT_BLUE}";
+
+    sudo -A patch --forward ${MARIADB_CONFIG} ${MSTR_WRK_DIR}/${MSTR_PATCH_NAME};
+    # sudo -A patch --forward --dry-run ${MARIADB_CONFIG} ${MSTR_WRK_DIR}/${MSTR_PATCH_NAME};
+    echo -e "\n${pDFLT}       Patched\n";
+
+    echo -e "${pYELLOW} - Restarting MariaDB  ${pDFLT}";
+    sudo -A systemctl restart mariadb;
+    # sudo -A systemctl status mariadb;
+
+  popd >/dev/null;
+}
+
+function backupDatabase () {
+  echo -e " - Taking backup of Master database ...";
+
+  pushd ${MASTER_BENCH_PATH} >/dev/null;
+    pushd ${BACKUP_RESTORE_DIR} >/dev/null;
+      ./handleBackup.sh "Pre-replication baseline";
+    popd >/dev/null;
+
+    pushd ./BKP >/dev/null;
+      BACKUP_NAME="\$(cat BACKUP.txt)";
+      echo -e " - Backup name is : '\${BACKUP_NAME}'";
+      rm -f ${MSTR_RSLT_DIR}/20*.tgz;
+      cp BACKUP.txt ${MSTR_RSLT_DIR};
+      cp \${BACKUP_NAME} ${MSTR_RSLT_DIR};
+    popd >/dev/null;
+    # pwd;
+    # echo -e "Purging temporary files from Master.";
+    # rm -fr /dev/shm/M_*;
+    # echo -e "${pYELLOW}----------------- Master Tasks Curtailed --------------------------${pDFLT}";
+    # exit;
+  popd >/dev/null;
+}
+
+function installBackupAndRestoreTools () {
+  echo -e " - Checking Frappe Bench directory location :: '${MASTER_BENCH_PATH}'";
+  if [ -f ${MASTER_BENCH_PATH}/Procfile ]; then
+    echo -e " - Moving Backup and Restore handlers from '${MSTR_WRK_DIR}/${BACKUP_RESTORE_DIR}' to Frappe Bench directory";
+    pushd ${MSTR_WRK_DIR}/${BACKUP_RESTORE_DIR} >/dev/null;
+      mv Master_${ENVARS} ${ENVARS};
+    popd >/dev/null;
+    cp -r ${MSTR_WRK_DIR}/${BACKUP_RESTORE_DIR} ${MASTER_BENCH_PATH}
+  else
+    echo -e "\n${pRED}* * * Specified Frappe Bench directory location, '${MASTER_BENCH_PATH}', is NOT correct. Cannot continue .... * * * ${pDFLT}"
+    exit 1;
   fi;
 }
 
-
-export BACKUP_NAME="";
-export SUDO_ASKPASS=${MSTR_WRK_DIR}/.supwd.sh;
-
-ensure_XMLStarlet;
-ensure_SUDO_ASKPASS;
-if [ \$? -eq 0 ]; then
-  echo -e " - 'SUDO_ASKPASS' environment variable is correct";
-else
-  echo -e "\n${pRED}* * * 'SUDO_ASKPASS' environment variable is NOT correct. Cannot continue .... * * * ${pDFLT}"
-  exit 1;
-fi;
-
-  echo -e "${pYELLOW}----------------- Master Tasks Curtailed --------------------------${pDFLT}";
-  exit;
+function stopERPNext () {
+  echo -e "${pYELLOW} - Stopping ERPNext on Master ...  ${pFAINT_BLUE}\n";
+  sudo -A supervisorctl stop all;
+  echo -e "\n${pDFLT}     Stopped\n";
+}
 
 mkdir -p ${MSTR_RSLT_DIR};
 
-echo -e "${pYELLOW} - Stopping ERPNext on Master ...  ${pDFLT}";
-sudo -A supervisorctl stop all;
+export BACKUP_NAME="";
 
-echo -e " - Configuring MariaDB Master for replication";
-pushd ${MARIADB_CONFIG_DIR} >/dev/null;
+declare PKG="xmlstarlet";
+ensurePkgIsInstalled;
 
-  echo -e " - Patching '${MARIADB_CONFIG}' with '${MSTR_WRK_DIR}/${MSTR_PATCH_NAME}'";
-  sudo -A patch ${MARIADB_CONFIG} ${MSTR_WRK_DIR}/${MSTR_PATCH_NAME} >/dev/null;
-  # sudo -A patch --dry-run ${MARIADB_CONFIG} ${MSTR_WRK_DIR}/${MSTR_PATCH_NAME};
+declare PKG="jq";
+ensurePkgIsInstalled;
 
-  echo -e "${pYELLOW} - Restarting MariaDB  ${pDFLT}";
-  sudo -A systemctl restart mariadb;
-  # sudo -A systemctl status mariadb;
 
-popd >/dev/null;
+ensure_SUDO_ASKPASS;
 
-echo -e " - Taking backup of Master database: '${ERPNEXT_SITE_DB}'";
-pushd \${HOME}/${MASTER_BENCH_NAME} >/dev/null;
-  pushd ./apps/ce_sri/development/initialization >/dev/null;
+if [ \$? -eq 0 ]; then
+  echo -e " - 'SUDO_ASKPASS' environment variable is correct.";
+else
+  echo -e "\n${pRED}* * * 'SUDO_ASKPASS' environment variable or emitter is NOT correct. Cannot continue .... * * * ${pDFLT}"
+  exit 1;
+fi;
+
+installBackupAndRestoreTools;
+
+stopERPNext;
+
+configureDBforReplication;
+
+backupDatabase;
+
+    # tree /dev/shm;
+    # echo -e "Purging temporary files from Master.";
+    # rm -fr /dev/shm/M_*;
+    # echo -e "${pYELLOW}----------------- Master Tasks Curtailed --------------------------${pDFLT}";
     # # ls -la;
-    ./QikBackup.sh "Pre-replication baseline";
-  popd >/dev/null;
-  pushd ./BKP >/dev/null;
-    BACKUP_NAME="\$(cat BACKUP.txt)";
-    echo -e " - Backup name is : '\${BACKUP_NAME}'";
-    rm -f ${MSTR_RSLT_DIR}/20*.tgz;
-    cp BACKUP.txt ${MSTR_RSLT_DIR};
-    cp \${BACKUP_NAME} ${MSTR_RSLT_DIR};
-  popd >/dev/null;
-popd >/dev/null;
+    # # hostname;
+    # # pwd;
+    # exit;
 
 echo -e " - Enabling Slave user access and reading status of Master";
 pushd ${MSTR_WRK_DIR} >/dev/null;
@@ -125,6 +209,11 @@ echo -e " - Packaging results into :: '${TMP_DIR}/${MSTR_RSLT_PKG}'";
 pushd ${TMP_DIR} >/dev/null;
   tar zcvf ${MSTR_RSLT_PKG} ${MSTR_RSLT} >/dev/null;
 popd >/dev/null;
+
+echo -e "Purging temporary files from Master.";
+# ls -la /dev/shm/;
+# rm -fr /dev/shm/M_w*;
+# rm -fr /dev/shm/M_rslt;
 
 
 echo -e "\nCompleted remote job : '${MSTR_WRK_DIR}/${MSTR_JOB}'.\n\n";

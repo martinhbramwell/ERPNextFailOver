@@ -17,7 +17,7 @@ export SUDO_ASKPASS=${DIR}/.supwd.sh;
 sudo -A systemctl restart mariadb;
 sudo -A systemctl status mariadb | grep "Active: ";
 EOFMRS
-sudo -A chmod +x ${DIR};
+sudo -A chmod +x ${DIR}/${MARIA_RST_SCRIPT};
 
 # cat ${DIR}/${MARIA_RST_SCRIPT};
 

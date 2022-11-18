@@ -6,41 +6,50 @@ export start_time="$(date -u +%s)";
 export DEBUGGING="debugging";
 export pRED="\033[1;40;31m";
 export pYELLOW="\033[1;40;33m";
+export pGOLD="\033[0;40;33m";
+export pFAINT_BLUE="\033[0;49;34m";
 export pGREEN="\033[1;40;32m";
 export pDFLT="\033[0m";
-
+export pBG_YLO="\033[1;43;33m";
 
 echo -e "
 
 ${pGREEN}----------------------------- Starting -----------------------------------${pDFLT}";
 
-
-declare PKG="xmlstarlet";
-echo -e "Checking presence of '${PKG}' tool.";
-if dpkg-query -l ${PKG} >/dev/null; then
-  echo -e " - Found '${PKG}' already installed";
-else
-  echo -e "\n* * * Do you accept to install 'xmlstarlet' (  https://en.wikipedia.org/wiki/XMLStarlet ) * * * ";
-  read  -n 1 -p "Type 'y' to approve, or any other key to quit :  " installOk
-  if [ "${installOk}" == "y" ]; then
-    echo -e "Ok."; 
-    sudo -A apt install ${PKG};
-    echo -e "\n - Installed '${PKG}'"
+function ensurePkgIsInstalled () {
+  echo -e "Checking presence of '${PKG}' tool.";
+  if dpkg-query -l ${PKG} >/dev/null; then
+    echo -e " - Found '${PKG}' already installed";
   else
-    echo -e "\n\nOk. Cannot proceed.\n ${pRed}Quitting now. ${pDFLT}"; 
-  fi
-fi;
+    echo -e "\n* * * Do you accept to install 'xmlstarlet' (  https://en.wikipedia.org/wiki/XMLStarlet ) * * * ";
+    read  -n 1 -p "Type 'y' to approve, or any other key to quit :  " installOk
+    if [ "${installOk}" == "y" ]; then
+      echo -e "Ok."; 
+      sudo -A apt install ${PKG};
+      echo -e "\n - Installed '${PKG}'"
+    else
+      echo -e "\n\nOk. Cannot proceed.\n ${pRed}Quitting now. ${pDFLT}"; 
+    fi
+  fi;
+}
 
 echo -e "";
 
 export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-declare ENVARS="${SCRIPT_DIR}/envars.sh";
+declare ENVARS="envars.sh";
+declare ENVARS_PATH="${SCRIPT_DIR}/${ENVARS}";
 
 declare PREP_MSTR="${SCRIPT_DIR}/master/prepareMaster.sh";
 declare PREP_SLV="${SCRIPT_DIR}/slave/prepareSlave.sh";
 declare MAKE_MARIADB_RESTART_SCRIPT="${SCRIPT_DIR}/makeMariaDBRestartScript.sh";
 declare MAKE_ASK_PASS_EMITTER="${SCRIPT_DIR}/makeAskPassEmitter.sh";
+declare MAKE_ENVARS_FILE="${SCRIPT_DIR}/makeEnvarsFile.sh";
+
+declare BACKUP_RESTORE_DIR="BaRe";
+declare BACKUP_RESTORE_PATH="${SCRIPT_DIR}/${BACKUP_RESTORE_DIR}";
+declare BACKUP_HANDLER="handleBackup.sh";
+declare RESTORE_HANDLER="handleRestore.sh";
 
 declare TMP_DIR="/dev/shm";
 # declare CE_SRI_UTILS="apps/ce_sri/development/initialization";
@@ -65,6 +74,13 @@ declare SLAV_STATUS_RSLT="slaveStatus.xml";
 
 declare MARIA_RST_SCRIPT="restartMariaDB.sh";
 declare ASK_PASS_EMITTER=".supwd.sh";
+declare SITE_CONFIG="site_config.json";
+
+declare PKG="xmlstarlet";
+ensurePkgIsInstalled;
+
+declare PKG="jq";
+ensurePkgIsInstalled;
 
 mkdir -p ${MSTR_WRK_DIR};
 rm -fr ${MSTR_WRK_DIR}/*;
@@ -72,21 +88,22 @@ rm -fr ${MSTR_WRK_DIR}/*;
 mkdir -p ${SLAV_WRK_DIR};
 rm -fr ${SLAV_WRK_DIR}/*;
 
-[ -f ${ENVARS} ] || ERRORS="${ERRORS}\n  - Configuration file '${ENVARS}' was not found";
+[ -f ${ENVARS_PATH} ] || ERRORS="${ERRORS}\n  - Configuration file '${ENVARS_PATH}' was not found";
 
 echo -e "Loading dependencies ..."
-source ${ENVARS};
+source ${ENVARS_PATH};
 source ${PREP_MSTR};
 source ${PREP_SLV};
 source ${MAKE_MARIADB_RESTART_SCRIPT};
 source ${MAKE_ASK_PASS_EMITTER};
+source ${MAKE_ENVARS_FILE};
 
 export MASTER_IP_ADDR=${STR#${THST} has address }
 
-[ ! -z ${MASTER_HOST_URL} ] || ERRORS="${ERRORS}\n  - Master host URL was not specified in '${ENVARS}'";
+[ ! -z ${MASTER_HOST_URL} ] || ERRORS="${ERRORS}\n  - Master host URL was not specified in '${ENVARS_PATH}'";
 [ -f ${HOME}/.ssh/${MASTER_HOST_KEY} ] || ERRORS="${ERRORS}\n  - Master host PKI file '${HOME}/.ssh/${MASTER_HOST_KEY}' was not found";
 
-[ ! -z ${SLAVE_HOST_URL} ] || ERRORS="${ERRORS}\n  - Slave host URL was not specified in '${ENVARS}'";
+[ ! -z ${SLAVE_HOST_URL} ] || ERRORS="${ERRORS}\n  - Slave host URL was not specified in '${ENVARS_PATH}'";
 [ -f ${HOME}/.ssh/${SLAVE_HOST_KEY} ] || ERRORS="${ERRORS}\n  - Slave host PKI file '${HOME}/.ssh/${SLAVE_HOST_KEY}' was not found";
 
 
@@ -118,15 +135,15 @@ if [[  "${TEST_CONNECTIVITY}" == "yes" ]]; then
   echo -e " - testing with command  : 'ssh ${THE_SLAVE} \"whoami\"'";
   [ "$(ssh ${THE_SLAVE} \"whoami\")" == "${SLAVE_HOST_USR}" ] || ERRORS="${ERRORS}\n  - Unable to get HOME directory of remote host '${THE_SLAVE}'.";
 else
-    echo -e "\n${pRED}* * * SKIPPED TESTING CONNECTIVITY * * * ${pDFLT}";
+  echo -e "${pGOLD}Skipping testing connectivity. (TEST_CONNECTIVITY =='${TEST_CONNECTIVITY}').${pDFLT}";
 fi;
 
 if [[ "${ERRORS}" != "${ERROR_MSG}" ]]; then
   echo -e "\n${ERRORS}\n\n${pRED}Cannot continue.\n~~~~~~~~~~~~~~~${pDFLT}";
   exit;
 else
-  echo -e "\n                                  No errors found";
-  echo -e "                                    -- o 0 o --";
+  echo -e "\n${pGREEN}                  No initial configuration errors found";
+  echo -e "                               -- o 0 o --${pDFLT}";
   echo -e "\n\nReady to prepare Master/Slave replication: "
   echo -e "  - Master: "
   echo -e "     - User: ${MASTER_HOST_USR}"
@@ -146,8 +163,8 @@ fi;
 
 declare -a HOSTS
 
-HOSTS[0]="Master|${SLAVE_HOST_USR}|${MSTR_WRK_DIR}|${MASTER_HOST_URL}|${MASTER_HOST_PWD}";
-HOSTS[1]="Slave|${MASTER_HOST_USR}|${SLAV_WRK_DIR}|${SLAVE_HOST_URL}|${SLAVE_HOST_PWD}";
+HOSTS[0]="Master|${MASTER_HOST_USR}|${MSTR_WRK_DIR}|${MASTER_HOST_URL}|${MASTER_HOST_PWD}|${MASTER_BENCH_PATH}";
+HOSTS[1]="Slave|${SLAVE_HOST_USR}|${SLAV_WRK_DIR}|${SLAVE_HOST_URL}|${SLAVE_HOST_PWD}|${SLAVE_BENCH_PATH}";
 
 echo -e "Making generic host-specific scripts";
 for HOST in "${HOSTS[@]}"
@@ -161,25 +178,33 @@ do
   DIR="${arr[2]}"
   HST="${arr[3]}"
   APD="${arr[4]}"
+  FBP="${arr[5]}"
+
   makeMariaDBRestartScript;
   makeAskPassEmitter;
+  makeEnvarsFile;
 done
 
-echo -e "${pYELLOW}------------------------------ Curtailed ----------------------------------${pDFLT}
-${SLAVE_DB_PWD}";
-exit;
+if [[ "${REPEAT_SLAVE_WITHOUT_MASTER}" == "yes" ]]; then
+  echo -e "\n${pGOLD}Skipping processing master. (REPEAT_SLAVE_WITHOUT_MASTER =='${REPEAT_SLAVE_WITHOUT_MASTER}').${pDFLT}"
+else
+  prepareMaster;
+fi;
 
-prepareMaster;
-
-echo -e "${pYELLOW}------------- prepareMasterAndSlave Curtailed ---------------------${pDFLT}";
-exit;
+# echo -e "${pYELLOW}------------- prepareMasterAndSlave Curtailed ---------------------${pDFLT}";
+# exit;
 
 declare MASTER_OK="no";
 
 pushd ${TMP_DIR} >/dev/null;
-  # rm -fr ${MSTR_RSLT}*;
-  echo -e "Downloading Master status file '${MSTR_RSLT_PKG}' to '$(pwd)'."
-  scp ${THE_MASTER}:${TMP_DIR}/${MSTR_RSLT_PKG} . &>/dev/null;
+  if [[ "${REPEAT_SLAVE_WITHOUT_MASTER}" == "yes" ]]; then
+    echo -e "${pGOLD}Skipping downloading from master. (REPEAT_SLAVE_WITHOUT_MASTER =='${REPEAT_SLAVE_WITHOUT_MASTER}').${pDFLT}\n"
+  else
+    echo -e "Downloading Master status file '${MSTR_RSLT_PKG}' to '$(pwd)'."
+    # echo -e "scp ${THE_MASTER}:${TMP_DIR}/${MSTR_RSLT_PKG}";
+    scp ${THE_MASTER}:${TMP_DIR}/${MSTR_RSLT_PKG} . &>/dev/null;
+  fi;
+
   if [ $? -eq 0 ]; then
     tar zxvf ${MSTR_RSLT_PKG} >/dev/null;
     pushd ${MSTR_RSLT} >/dev/null;
@@ -188,9 +213,16 @@ pushd ${TMP_DIR} >/dev/null;
         if [ $? -eq 0 ]; then
           MASTER_OK="yes"
           echo -e "\nReady to 'prepareSlave'";
+
           prepareSlave;
           
-# echo -e "${pYELLOW}------------------------------ Curtailed ----------------------------------${pDFLT}";
+# echo -e "Purging temporary files from workstation.";
+# # tree /dev/shm;
+# rm -fr /dev/shm/M_*;
+# rm -fr /dev/shm/S_*;
+# # ls -la;
+
+# echo -e "${pYELLOW}------------- prepareMasterAndSlave Curtailed ---------------------${pDFLT}";
 # exit;
 
           ssh ${THE_SLAVE} ${SLAV_WRK_DIR}/${MARIA_RST_SCRIPT};
