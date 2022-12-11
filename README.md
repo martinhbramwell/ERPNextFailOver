@@ -1,6 +1,9 @@
 # ERPNextFailOver
-$${\color{red}Red}$$
+
+
 $${\color{green}Green}$$
+
+$${\color{red}Just Red}$$
 
 ``` 
 colored code $${\color{green}Green}$$
