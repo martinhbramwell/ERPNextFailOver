@@ -6,21 +6,23 @@ export SCRIPT_NAME=$( basename ${0#-} );
 export THIS_SCRIPT=$( basename ${BASH_SOURCE} )
 
 function makeMasterMariaDBScript () {
-  echo -e " - Making MariaDB script :: '${MSTR_WRK_DIR}/${MARIADB_SCRIPT}'."
+  echo -e " - Making MariaDB script :: '${MSTR_WRK_DIR}/${MARIADB_SCRIPT}'.";
+
+  declare SLAVE_IP=$(dig ${SLAVE_HOST_URL} A +short);
+  declare SLAVE_USR=${SLAVE_HOST_URL//./_};
 
   cat << EOFMDB > ${MSTR_WRK_DIR}/${MARIADB_SCRIPT}
-DROP USER IF EXISTS 'loso_erpnext_host'@'185.34.136.36';
+DROP USER IF EXISTS '${SLAVE_USR}'@'${SLAVE_IP}';
 
 STOP SLAVE;
-CREATE USER 'loso_erpnext_host'@'185.34.136.36' IDENTIFIED BY '${SLAVE_DB_PWD}';
-GRANT REPLICATION SLAVE ON *.* TO 'loso_erpnext_host'@'185.34.136.36';
+
+CREATE USER '${SLAVE_USR}'@'${SLAVE_IP}' IDENTIFIED BY '${SLAVE_DB_PWD}';
+GRANT REPLICATION SLAVE ON *.* TO '${SLAVE_USR}'@'${SLAVE_IP}';
 
 FLUSH PRIVILEGES;
 
 SHOW MASTER STATUS;
 
--- select host, db, user from mysql.db;
--- select host, user, repl_slave_priv, delete_priv from mysql.user;
 EOFMDB
 }
 

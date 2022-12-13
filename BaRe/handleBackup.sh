@@ -1,44 +1,27 @@
 #!/usr/bin/env bash
 #
-export SCRIPT_NAME=$(basename "$0");
 
+export SCRIPT_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )";
+export CURR_SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )"   && pwd )
+export SCRIPT_NAME=$( basename ${0#-} );
+export THIS_SCRIPT=$( basename ${BASH_SOURCE} )
 
-export ENVIRONMENT_VARIABLES="./envars.sh"
-# ls -la ${ENVIRONMENT_VARIABLES};
-source ${ENVIRONMENT_VARIABLES};
+# echo -e "SCRIPT_DIR ${SCRIPT_DIR}";
+# echo -e "CURR_SCRIPT_DIR ${CURR_SCRIPT_DIR}";
+# echo -e "SCRIPT_NAME ${SCRIPT_NAME}";
+# echo -e "THIS_SCRIPT ${THIS_SCRIPT}";
 
-export pRED="\033[1;40;31m";
-export pYELLOW="\033[1;40;33m";
-export pGOLD="\033[0;40;33m";
-export pFAINT_BLUE="\033[0;49;34m";
-export pGREEN="\033[1;40;32m";
-export pDFLT="\033[0m";
-export pBG_YLO="\033[1;43;33m";
+source ${CURR_SCRIPT_DIR}/utils.sh;
 
-declare TARGET_HOST=${ERPNEXT_SITE_URL};
-declare SITES="sites";
-declare SITE_PATH="${SITES}/${TARGET_HOST}";
-declare PRIVATE_PATH="${TARGET_HOST}/private";
-declare BACKUPS_PATH="${PRIVATE_PATH}/backups";
-declare FILES_PATH="${PRIVATE_PATH}/files";
-declare BACKUPS_FILES_ABS_PATH="${TARGET_BENCH}/${SITES}/${BACKUPS_PATH}";
-
-declare BACKUP_DIR="${TARGET_BENCH}/BKP";
 
 declare TO="${BACKUP_DIR}"
-declare FROM="${TARGET_BENCH}/${SITES}/${BACKUPS_PATH}";
+declare FROM="${TARGET_BENCH}/${BACKUPS_PATH}";
 
-# ls -la ${BACKUPS_FILES_ABS_PATH}
-
-declare TMP_DIR="/dev/shm";
 declare RPRT="backup_report.txt";
 declare DB_NAME="";
 
 declare PREFIX="./${BACKUPS_PATH}/"
 declare COMMENT="";
-
-
-declare SITE_CONFIG="site_config.json";
 
 if [[ -z ${1} ]]; then
   echo -e "Usage:  ${SCRIPT_NAME} \"Obligatory comment in double quotes\"
@@ -48,10 +31,11 @@ else
   COMMENT="${1}";
 fi;
 
+
 pushd ${TARGET_BENCH} >/dev/null;
   SOURCE_HOST=${TARGET_HOST};
 
-  echo -e "\n\n - Backing up \"${COMMENT}\" for site ${SOURCE_HOST} (in ${BACKUP_DIR}).";
+  echo -e "\n - Backing up \"${COMMENT}\" for site ${SOURCE_HOST} (in ${BACKUP_DIR}).";
 
   pushd sites/${SOURCE_HOST} >/dev/null;
     DB_NAME=$(jq -r .db_name ${SITE_CONFIG});
@@ -68,7 +52,7 @@ pushd ${TARGET_BENCH} >/dev/null;
   mkdir -p ${BACKUP_DIR};
   
   
-  echo -e "   - Backup command is:\n    ==>   bench --site ${SOURCE_HOST} backup --with-files > ${TMP_DIR}/${RPRT};";
+  echo -e "   - Backup command is:\n        ==>  bench --site ${SOURCE_HOST} backup --with-files > ${TMP_DIR}/${RPRT};";
   echo -e "     - Will archive database (${DB_NAME}) and files to ${FROM}";
   echo -e "     - Will write log result to ${TMP_DIR}/${RPRT}";
 
@@ -103,7 +87,7 @@ echo -e "   - Name : ${BACKUP_FILE_UID}";
 # exit;
 
 pushd ${FROM} >/dev/null;
-  echo -e "   - Compression command is:\n    ==>   tar zcvf ${TO}/${BACKUP_FILE_UID}.tgz ./${BACKUP_FILE_UID}*";
+  echo -e "   - Compression command is:\n        ==>  tar zcvf ${TO}/${BACKUP_FILE_UID}.tgz ./${BACKUP_FILE_UID}*";
   echo -e "         started ...";
   tar zcvf ${TO}/${BACKUP_FILE_UID}.tgz ./${BACKUP_FILE_UID}* >/dev/null;
   rm -f ./${BACKUP_FILE_UID}*;
@@ -117,8 +101,13 @@ pushd ${TO} >/dev/null;
   cp ProdBckup.txt BACKUP.txt;
   touch NotesForBackups.txt;
   echo -e "${COMMENT} :: ${BACKUP_FILE_UID}.tgz" >> NotesForBackups.txt;
-  echo -e "\n - Recent logged repackaging results in '\${pwd}/NotesForBackups.txt' are :${pGOLD}";
+  echo -e "\n - The 5 most recent logged repackaging results in '$(pwd)/${pGOLD}NotesForBackups.txt${pDFLT}' are :${pGOLD}";
   tail -n 5 NotesForBackups.txt;
-  echo -e "${pDFLT}\n - Backup process complete!.";
 popd >/dev/null;
 
+seconds=$(($(date +'%s') - $start));
+
+
+echo -e "\n\n${pGREEN}Backup process completed! Elapsed time, $(secs_to_human $seconds) seconds
+
+${pDFLT}";

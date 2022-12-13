@@ -6,7 +6,7 @@ export SCRIPT_NAME=$( basename ${0#-} );
 export THIS_SCRIPT=$( basename ${BASH_SOURCE} )
 
 function makeEnvarsFile () {
-  echo -e "    - Making environment variables file for backup and restore functions";
+  echo -e "    - Making environment variables file for backup and restore functions  (${DIR}/${BACKUP_RESTORE_DIR}/${ROL}_${ENVARS})";
 
   mkdir -p ${DIR}/${BACKUP_RESTORE_DIR};
 

@@ -74,7 +74,7 @@ function installBackupAndRestoreTools () {
   if [ -f ${SLAVE_BENCH_PATH}/Procfile ]; then
     echo -e " - Moving Backup and Restore handlers from '${SLAV_WRK_DIR}/${BACKUP_RESTORE_DIR}' to Frappe Bench directory";
     pushd ${SLAV_WRK_DIR}/${BACKUP_RESTORE_DIR} >/dev/null;
-      mv Slave_${ENVARS} ${ENVARS};
+      ln -fs Slave_${ENVARS} ${ENVARS};
     popd >/dev/null;
     cp -r ${SLAV_WRK_DIR}/${BACKUP_RESTORE_DIR} ${SLAVE_BENCH_PATH}
   else

@@ -81,7 +81,7 @@ function ensure_SUDO_ASKPASS () {
 }
 
 function configureDBforReplication () {
-  echo -e " - Configuring MariaDB Master for replication";
+  echo -e " - Configuring MariaDB Master for replication. (${MARIADB_CONFIG_DIR}/${MARIADB_CONFIG})";
   echo -e "   - Getting database name for site '${MASTER_HOST_URL}' from '${MASTER_BENCH_PATH}/sites/${MASTER_HOST_URL}/${SITE_CONFIG}'.";
 
   # jq -r . ${MASTER_BENCH_PATH}/sites/${MASTER_HOST_URL}/${SITE_CONFIG};
@@ -134,7 +134,7 @@ function installBackupAndRestoreTools () {
   if [ -f ${MASTER_BENCH_PATH}/Procfile ]; then
     echo -e " - Moving Backup and Restore handlers from '${MSTR_WRK_DIR}/${BACKUP_RESTORE_DIR}' to Frappe Bench directory";
     pushd ${MSTR_WRK_DIR}/${BACKUP_RESTORE_DIR} >/dev/null;
-      mv Master_${ENVARS} ${ENVARS};
+      ln -fs Master_${ENVARS} ${ENVARS};
     popd >/dev/null;
     cp -r ${MSTR_WRK_DIR}/${BACKUP_RESTORE_DIR} ${MASTER_BENCH_PATH}
   else
@@ -177,9 +177,9 @@ configureDBforReplication;
 
 backupDatabase;
 
-    # tree /dev/shm;
-    # echo -e "Purging temporary files from Master.";
-    # rm -fr /dev/shm/M_*;
+    # # tree /dev/shm;
+    # # echo -e "Purging temporary files from Master.";
+    # # rm -fr /dev/shm/M_*;
     # echo -e "${pYELLOW}----------------- Master Tasks Curtailed --------------------------${pDFLT}";
     # # ls -la;
     # # hostname;

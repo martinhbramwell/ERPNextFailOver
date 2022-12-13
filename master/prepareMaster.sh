@@ -36,12 +36,12 @@ function prepareMaster() {
   echo -e "Extracting content from uploaded file '${MSTR_WRK_FILES}' on Master."
   ssh ${THE_MASTER} tar zxvf ${TMP_DIR}/${MSTR_WRK_FILES} -C /dev/shm >/dev/null;
 
-  echo -e "Executing script '${MSTR_JOB}' on Master."
-  ssh -t ${THE_MASTER} ${MSTR_WRK_DIR}/${MSTR_JOB};
-
-  # ls -la;
+  # # ls -la;
   # echo -e "${pYELLOW}------------- prepareMaster Curtailed ---------------------${pDFLT}";
   # exit;
+
+  echo -e "Executing script '${MSTR_JOB}' on Master."
+  ssh -t ${THE_MASTER} ${MSTR_WRK_DIR}/${MSTR_JOB};
 
 }
 
