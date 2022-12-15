@@ -7,9 +7,9 @@ To be more precise, it sets up MySql/MariaDb replication, but also provides you 
 
 ### Why?
 
-You can certainly set up of this kind of replication manually, but the docs typically cover many options and alternatives making it time consuming to work through what is appropriate for a single ERPNext installation. This tool will give you a minimum starting configuration, which you can enhance as needed.
+You can certainly set up this kind of replication manually, but the docs typically cover many options and alternatives making it time consuming to work through what is appropriate for a single ERPNext installation. This tool will give you a minimum starting configuration, which you can enhance as needed.
 
-For replication to start correctly, you want the master and slave databases to be nearly identical.  In particular they must both manage the same transaction log and "tags" in the master's log must be the same as, or ahead of, the slave's log tags.  Setting up replication requires a sequence of operations that needs to happen correctly or you end up with a setup that seems right but doesn't start.
+For replication to start correctly, you want the master and slave databases to be nearly identical.  In particular they must both manage the same transaction log and the "position tag" in the master's log must be the same as, or ahead of, the slave's log position tag.  Setting up replication requires a sequence of operations that needs to happen correctly or you end up with a setup that seems right but doesn't start.
 
 ## How?
 

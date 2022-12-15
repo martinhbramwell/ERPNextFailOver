@@ -5,8 +5,13 @@ export SCRIPT_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )";
 export SCRIPT_NAME=$( basename ${0#-} );
 export THIS_SCRIPT=$( basename ${BASH_SOURCE} )
 
+
+
 function makeMasterTasks () {
+
   echo -e " - Making Master Tasks script :: ${MSTR_WRK_DIR}/${MSTR_JOB}."
+  declare SLAVE_IP=$(dig ${SLAVE_HOST_URL} A +short);
+
   cat << EOFCT > ${MSTR_WRK_DIR}/${MSTR_JOB}
 #!/usr/bin/env bash
 #
@@ -17,7 +22,7 @@ function ensurePkgIsInstalled () {
   if dpkg-query -l \${PKG} >/dev/null; then
     echo -e " - Found \${PKG} already installed";
   else
-    sudo -A apt install \${PKG};
+    sudo -A apt install \${PKG} >/dev/null;
     echo -e "\n - Installed \${PKG}"
   fi;
 }
@@ -37,36 +42,6 @@ function ensure_SUDO_ASKPASS () {
     echo -e "    - SUDO_ASKPASS creation denied in configuration";
     return 1;
   fi;
-  # if [ -z \${SUDO_ASKPASS} ]; then
-  #   echo -e "    - Master has no pre-existing 'SUDO_ASKPASS' environment variable.";
-  #   if [[ "${ALLOW_SUDO_ASKPASS_CREATION}" == "yes" ]]; then
-  #     echo -e "    - Configuration allows ASKPASS creation.";
-  #     if [ -z ${MASTER_HOST_PWD} ]; then
-  #       echo -e "    - Configuration provides no password.";
-  #     else
-  #       echo -e "    - Found password in configuration file.";
-  #     fi;
-  #   else
-  #     echo -e "    - SUDO_ASKPASS creation denied in configuration";
-  #     return 1;
-  #   fi;
-  #   if [ -f ${MSTR_WRK_DIR}/.supwd.sh ]; then
-  #     echo -e "    - Found supplied 'ASKPASS' emitter script.";
-  #   else
-  #     echo -e "        Not found";
-  #   fi;
-  # else
-  #   echo -e "    - Master has a 'SUDO_ASKPASS' environment variable.  ( \${SUDO_ASKPASS}  )";
-  #   # declare TEST_RSLT=\$(sudo -A touch /etc/hostname);
-  #   sudo -A touch /etc/hostname;
-  #   if [ \$? -ne 0 ]; then
-  #     # echo -e "SUDO_ASKPASS ==> \${SUDO_ASKPASS}";
-  #     if [ ! -f \${SUDO_ASKPASS} ]; then
-  #       echo -e "${pRED}\n\n* * *          There is no file: '\${SUDO_ASKPASS}'                    * * * ${pDFLT}";
-  #     fi
-  #     return 1;
-  #   fi;
-  # fi;
 
   # declare TEST_RSLT=\$(sudo -A touch /etc/hostname);
   sudo -A touch /etc/hostname;
@@ -153,21 +128,20 @@ mkdir -p ${MSTR_RSLT_DIR};
 
 export BACKUP_NAME="";
 
-declare PKG="xmlstarlet";
-ensurePkgIsInstalled;
-
-declare PKG="jq";
-ensurePkgIsInstalled;
-
-
 ensure_SUDO_ASKPASS;
-
 if [ \$? -eq 0 ]; then
   echo -e " - 'SUDO_ASKPASS' environment variable is correct.";
 else
   echo -e "\n${pRED}* * * 'SUDO_ASKPASS' environment variable or emitter is NOT correct. Cannot continue .... * * * ${pDFLT}"
   exit 1;
 fi;
+
+echo -e "\n\n - Installing dependencies.";
+declare PKG="xmlstarlet";
+ensurePkgIsInstalled;
+
+declare PKG="jq";
+ensurePkgIsInstalled;
 
 installBackupAndRestoreTools;
 
@@ -200,6 +174,9 @@ echo -e "   - Log file POSITION :: \${STATUS_POS}";
 
 export STATUS_DB=\$(xmlstarlet sel -t -v "//resultset/row/field[@name='Binlog_Do_DB']" ${MSTR_RSLT_DIR}/${MSTR_STATUS_RSLT});
 echo -e "   - Restrict to DATABASE :: \${STATUS_DB}";
+
+echo -e "   - Open MySql port 3306 for remote host :: ${SLAVE_IP}";
+sudo ufw allow from ${SLAVE_IP} to any port 3306;
 
 echo -e "${pYELLOW} - Stopping MariaDB so that the backup can be restored on the Slave. ${pDFLT}";
 sudo -A systemctl stop mariadb;

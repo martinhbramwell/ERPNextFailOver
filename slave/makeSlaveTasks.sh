@@ -10,7 +10,32 @@ function makeSlaveTasks () {
   cat << EOFCTS > ${SLAV_WRK_DIR}/${SLAV_JOB}
 #!/usr/bin/env bash
 #
-export SUDO_ASKPASS=${SLAV_WRK_DIR}/.supwd.sh;
+
+function ensure_SUDO_ASKPASS () {
+  echo -e " - Testing 'SUDO_ASKPASS' capability. ( SUDO_ASKPASS = >\${SUDO_ASKPASS}< )";
+  if [[ "${ALLOW_SUDO_ASKPASS_CREATION}" == "yes" ]]; then
+    echo -e "    - Configuration allows ASKPASS creation.";
+    if [ -z ${SLAVE_HOST_PWD} ]; then
+      echo -e "    - Configuration provides no password.";
+      return 1;
+    else
+      echo -e "    - Found password in configuration file. Trying uploaded ASK_PASS emmitter.";
+      export SUDO_ASKPASS=${SLAV_WRK_DIR}/.supwd.sh;
+    fi;
+  else
+    echo -e "    - SUDO_ASKPASS creation denied in configuration";
+    return 1;
+  fi;
+
+  sudo -A touch /etc/hostname;
+  if [ \$? -ne 0 ]; then
+    # echo -e "SUDO_ASKPASS ==> \${SUDO_ASKPASS}";
+    if [ ! -f \${SUDO_ASKPASS} ]; then
+      echo -e "${pRED}\n\n* * *          There is no file: '\${SUDO_ASKPASS}'                    * * * ${pDFLT}";
+    fi
+    return 1;
+  fi;
+}
 
 function ensurePkgIsInstalled () {
   if dpkg-query -l \${PKG} >/dev/null; then
@@ -84,6 +109,13 @@ function installBackupAndRestoreTools () {
 }
 
 
+ensure_SUDO_ASKPASS;
+if [ \$? -eq 0 ]; then
+  echo -e " - 'SUDO_ASKPASS' environment variable is correct.";
+else
+  echo -e "\n${pRED}* * * 'SUDO_ASKPASS' environment variable or emitter is NOT correct. Cannot continue .... * * * ${pDFLT}"
+  exit 1;
+fi;
 
 declare DIR_BKP="${SLAVE_BENCH_PATH}/BKP";
 
@@ -93,6 +125,9 @@ mkdir -p ${SLAV_RSLT_DIR};
       # ${SLAV_RSLT_DIR}";
       # exit;
 
+
+
+echo -e "\n\n - Installing dependencies.";
 
 declare PKG="xmlstarlet";
 ensurePkgIsInstalled;

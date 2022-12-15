@@ -263,6 +263,17 @@ pushd ${TMP_DIR} >/dev/null;
           ssh ${THE_MASTER} ${MSTR_WRK_DIR}/${MARIA_RST_SCRIPT};
           sleep 5;
           ssh ${THE_SLAVE} ${SLAV_WRK_DIR}/${MARIA_RST_SCRIPT};
+
+          declare WAIT=75;
+          echo -e "\n\nSleeping for ${WAIT} seconds, before checking slave status.";
+          sleep ${WAIT};
+
+          echo -e "Found slave status to be ...";
+          ssh ${THE_SLAVE} 'mysql mysql -e "SHOW SLAVE STATUS\G" | grep -e "Slave_IO_Running" -e "Slave_SQL_Running" -e " Master_Log_File"  -e "Read_Master_Log_Pos" -e "Last_IO_Error" -e "Slave_SQL_Running_State"';
+
+          echo -e "\nRestarting ERPNext on Master ...";
+          ssh ${THE_MASTER} 'sudo -A supervisorctl restart all';
+
         else
           echo -e "\n\n${pRED}* * * Expected Master status data was not found .... * * * ${pDFLT}"
           cat ${TMP_DIR}/${MSTR_STATUS_RSLT};
