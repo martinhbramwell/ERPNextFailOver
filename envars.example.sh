@@ -11,8 +11,8 @@
 ###############################
 
 export USE_HOST_ALIAS="no";                                          # If "yes", use *_HOST_ALIAS instead of *_HOST_URL, *_HOST_USR & *_HOST_KEY
-export ALLOW_SUDO_ASKPASS_CREATION="yes";                              # If "yes", a temporary SUDO_ASKPASS environment variable will be created in '/dev/shm'
-                                                                      #        which avoids typing passwords every time
+export ALLOW_SUDO_ASKPASS_CREATION="yes";                            # If "yes", a temporary SUDO_ASKPASS environment variable will be created in '/dev/shm'
+                                                                     #        which avoids typing passwords every time
 
 
 ###############################
@@ -24,7 +24,7 @@ export ALLOW_SUDO_ASKPASS_CREATION="yes";                              # If "yes
 export MASTER_HOST_URL="loso.erpnext.host";                           # Domain name of host
 export MASTER_HOST_USR="admin";                                       # ERPNext user name
 export MASTER_HOST_PWD="password#1";                                  # ERPNext user password
-export MASTER_HOST_KEY="admin_loso_erpnext_host";                     # ERPNext user SSH key
+export MASTER_HOST_KEY="admin_loso_erpnext_host";                     # ERPNext user SSH key registered in authorized_keys of user 'MASTER_HOST_USR'
 export MASTER_HOST_ALIAS="lenh";                                      # SSH host alias name
 export MASTER_BENCH_HOME=/home/${MASTER_HOST_USR};                    # Directory where the Frappe Bench is installed
 export MASTER_BENCH_NAME=frappe-bench-LENH;                           # The name given to the Frappe Bench directory
@@ -41,14 +41,14 @@ export MASTER_BENCH_PATH=${MASTER_BENCH_HOME}/${MASTER_BENCH_NAME};   # Full pat
 export SLAVE_HOST_URL="stg.erpnext.host";                             # Domain name of host
 export SLAVE_HOST_USR="adm";                                          # ERPNext user name
 export SLAVE_HOST_PWD="password#2";                                   # ERPNext user password
-export SLAVE_HOST_KEY="adm_stg_erpnext_host";                         # ERPNext user SSH key
+export SLAVE_HOST_KEY="adm_stg_erpnext_host";                         # ERPNext user SSH key registered in authorized_keys of user 'SLAVE_HOST_USR'
 export SLAVE_HOST_ALIAS="serpht";                                     # SSH host alias name
 export SLAVE_BENCH_HOME=/home/${SLAVE_HOST_USR};                      # Directory where the Frappe Bench is installed
 export SLAVE_BENCH_NAME=frappe-bench-SERPHT;                          # The name given to the Frappe Bench directory
 export SLAVE_BENCH_PATH=${SLAVE_BENCH_HOME}/${SLAVE_BENCH_NAME};      # Full path to Bench directory
 
-export SLAVE_DB_PWD="password#3";                                    # Replicator slave password         
-export SLAVE_DB_ROOT_PWD="password#4";                                    # Replicator slave password         
+export SLAVE_DB_ROOT_PWD="password#3";                                # Root password for MariaDb of slave         
+export SLAVE_DB_PWD="password#4";                                     # Replicator slave password         
 
 export RESTORE_SITE_CONFIG="yes";
 export KEEP_SITE_PASSWORD="yes";

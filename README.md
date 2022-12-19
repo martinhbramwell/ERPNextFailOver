@@ -25,9 +25,47 @@ For our use we have, for example, a master VPS rented in North America and a sla
 
 You will not need to log into either of the other two *unless you use UID/PWD access with SSH*!  These scripts require PKI based SSH access, so you **will** need to prepare for that.
 
+## envars.sh
+
+You only need concern yourself with two files:
+
+ - `prepareMasterAndSlave.sh`
+ - `envars.sh`
+
+The script, `prepareMasterAndSlave.sh`, does all the work according to the environment variable settings you make in `envars.sh`.
+
+To get started you will need to copy `envars.example.sh` to `envars.sh` and adjust the values to conform to your configuration.
+
+It is strongly recommended to set up a host alias for both targets.
+
+##  After execution
+
+The script `prepareMasterAndSlave.sh` does most its work in `/dev/shm` a standard shared memory ramdisk.  Rebooting destroys that content, but the root directory of the ERPNext user will have some leftover files, which the script does not purge yet.
+
+Two new directories will be created in the Frappe Bench directory: `BaRe` and `BKP`.  BaRe contains the backup and restore handlers. `BKP` contains backup archives and some pointer files.
+
+`/etc/mysql/mariadb.conf.d/50-server.cnf` will have been patched.
+
+Uncomplicated firewall will have a new record allowing the slave into port 3306.
+
+The slave user will be granted replication privilege in the master MariaDb.
+
+`xmlstarlet` and `jq` will be installed to facilitate extracting info from XML and JSON files.
+
+The slave database will have been replaced by a complete copy of the master database.
+
+Parts of the slave file `site_config.json` will have been altered.
+
+`${HOME}/.profile` will contain a new line: "`export SUDO_ASKPASS=/home/admin/.ssh/.supwd.sh;`" and a new file, `.supwd.sh`, will be stored in `${HOME}/.ssh`.  That file contains the sudo password for `${MASTER_HOST_USR}` or `${SLAVE_HOST_USR}` as appropriate.
 
 
-### Log of a complete error-free execution.
+
+
+## Log of a complete error-free execution.
+
+The following is a plain text log of a single complete error free execution.
+
+For something a bit easier to read, look for screenshots of a colorized terminal session in the `docs` directory.
 
 ```shell
 
