@@ -36,7 +36,9 @@ The script, `prepareMasterAndSlave.sh`, does all the work according to the envir
 
 To get started you will need to copy `envars.example.sh` to `envars.sh` and adjust the values to conform to your configuration.
 
-It is strongly recommended to set up a host alias for both targets.
+It is recommended, but not necessary, to set up a host alias for both targets using `${HOME}/.ssh/config`.
+
+When `envars.sh` is correctly prepared you just need to run `prepareMasterAndSlave.sh` which handles everything else.  `prepareMasterAndSlave.sh` is *idempotent*, meaning you can rerun as often as needed and (while `envars.sh` remains unaltered) you will always get the same result.
 
 ##  After execution
 
@@ -236,7 +238,7 @@ frappe-bench-LENH-web:frappe-bench-LENH-frappe-web: stopped
 
      Stopped
 
- - Configuring MariaDB Master for replication. (/etc/mysql/mariadb.conf.d//50-server.cnf)
+ - Configuring MariaDB Master for replication. (/etc/mysql/mariadb.conf.d/50-server.cnf)
    - Getting database name for site 'loso.erpnext.host' from '/home/admin/frappe-bench-LENH/sites/loso.erpnext.host/site_config.json'.
    - Providing 'binlog-do-db' with its value (_091b776d72ba8e16), in patch file '/dev/shm/M_work/master_50-server.cnf.patch'.
    - Patching '50-server.cnf' with '/dev/shm/M_work/master_50-server.cnf.patch'.
