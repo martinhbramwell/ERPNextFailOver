@@ -41,7 +41,7 @@ function ensurePkgIsInstalled () {
   if dpkg-query -l \${PKG} >/dev/null; then
     echo -e " - Found \${PKG} already installed";
   else
-    sudo -A apt install \${PKG};
+    sudo -A apt-get install \${PKG};
     echo -e "\n - Installed \${PKG}"
   fi;
 }

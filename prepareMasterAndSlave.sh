@@ -25,7 +25,7 @@ function ensurePkgIsInstalled () {
     read  -n 1 -p "Type 'y' to approve, or any other key to quit :  " installOk
     if [ "${installOk}" == "y" ]; then
       echo -e "\nOk."; 
-      sudo -A apt install ${PKG};
+      sudo -A apt-get install ${PKG};
       echo -e "\n - Installed '${PKG}'\n";
     else
       echo -e "\n\nOk. Cannot proceed.\n ${pRed}Quitting now. ${pDFLT}"; 
@@ -272,7 +272,7 @@ pushd ${TMP_DIR} >/dev/null;
           ssh ${THE_SLAVE} 'mysql mysql -e "SHOW SLAVE STATUS\G" | grep -e "Slave_IO_Running" -e "Slave_SQL_Running" -e " Master_Log_File"  -e "Read_Master_Log_Pos" -e "Last_IO_Error" -e "Slave_SQL_Running_State"';
 
           echo -e "\nRestarting ERPNext on Master ...";
-          ssh ${THE_MASTER} 'sudo -A supervisorctl restart all';
+          ssh ${THE_MASTER} "\${HOME}/restartERPNextSupervisor.sh";
 
         else
           echo -e "\n\n${pRED}* * * Expected Master status data was not found .... * * * ${pDFLT}"

@@ -11,9 +11,9 @@ else
 fi;
 
 declare PKG="inotify-tools";
-dpkg-query -l ${PKG} &>/dev/null || sudo -A apt -y install ${PKG};
+dpkg-query -l ${PKG} &>/dev/null || sudo -A apt-get -y install ${PKG};
 declare PKG="tree";
-dpkg-query -l ${PKG} &>/dev/null || sudo -A apt -y install ${PKG};
+dpkg-query -l ${PKG} &>/dev/null || sudo -A apt-get -y install ${PKG};
 
 ssh -t ${SERVER} "mkdir -p ${TARGET_DIR}";
 echo -e "Target prepared. Synching has begun.";

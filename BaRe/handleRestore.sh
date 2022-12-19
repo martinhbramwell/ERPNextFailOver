@@ -232,7 +232,7 @@ function restoreDatabase() {
       echo -e "         ... restored";
 
       pushd BKP >/dev/null;
-        echo -e "      - Restoring database views";
+        echo -e "\n      - Restoring database views";
         echo -e "${pDFLT}         started ...";
         mysql -AD ${ACTIVE_DATABASE} < ./views.ddl;
         echo -e "         ... restored";

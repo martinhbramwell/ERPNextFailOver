@@ -29,18 +29,18 @@ declare PKG="inotify-tools";
 
 if ! dpkg-query -l ${PKG} &>/dev/null; then
   echo "Attempting to install '${PKG}'"
-  if sudo apt -y install ${PKG} &>/dev/null; then
+  if sudo apt-get -y install ${PKG} &>/dev/null; then
     echo -e "Hmmm.";
   else
     echo -e "Required repositories are not available.  Running 'apt-get update'";
     sudo apt-get update;
     echo "\n\nAgain attempting to install '${PKG}'\n"
-    sudo apt -y install ${PKG};
+    sudo apt-get -y install ${PKG};
     echo "\nInstalled '${PKG}'\n"
   fi;
 fi;
 declare PKG="tree";
-dpkg-query -l ${PKG} &>/dev/null || sudo apt -y install ${PKG};
+dpkg-query -l ${PKG} &>/dev/null || sudo apt-get -y install ${PKG};
 
 echo "Run-On-Save will execute : '${EVENT_TASK}'";
 listVariables;

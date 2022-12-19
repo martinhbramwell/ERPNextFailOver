@@ -22,7 +22,7 @@ function ensurePkgIsInstalled () {
   if dpkg-query -l \${PKG} >/dev/null; then
     echo -e " - Found \${PKG} already installed";
   else
-    sudo -A apt install \${PKG} >/dev/null;
+    sudo -A apt-get install \${PKG} >/dev/null;
     echo -e "\n - Installed \${PKG}"
   fi;
 }
@@ -118,6 +118,17 @@ function installBackupAndRestoreTools () {
   fi;
 }
 
+function makeRestartERPNextSupervisorScript () {
+  echo -e " - Making ERPNext supervisor restart script :: '\${HOME}/restartERPNextSupervisor.sh'";
+  echo -e "
+#!/usr/bin/env bash
+#
+source \${HOME}/.profile;
+sudo -A supervisorctl restart all;
+" > \${HOME}/restartERPNextSupervisor.sh;
+chmod +x \${HOME}/restartERPNextSupervisor.sh;
+}
+
 function stopERPNext () {
   echo -e "${pYELLOW} - Stopping ERPNext on Master ...  ${pFAINT_BLUE}\n";
   sudo -A supervisorctl stop all;
@@ -142,6 +153,8 @@ ensurePkgIsInstalled;
 
 declare PKG="jq";
 ensurePkgIsInstalled;
+
+makeRestartERPNextSupervisorScript;
 
 installBackupAndRestoreTools;
 

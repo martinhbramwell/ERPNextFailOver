@@ -1,35 +1,3 @@
-# ERP Next Fail Over
-
-### What?
-*ERPNextFailOver* is a tool to automate setting up Master / Slave continuous replication for ERPNext.
-
-To be more precise, it sets up MySql/MariaDb replication, but also provides you with tools to help you migrate site specific details, such as `site_config.json`.  You will also find included `handleBackup.sh` and `handleRestore.sh` which take care of backing up an origin site and restoring to a destination having a different site name and URL.
-
-### Why?
-
-You can certainly set up this kind of replication manually, but the docs typically cover many options and alternatives making it time consuming to work through what is appropriate for a single ERPNext installation. This tool will give you a minimum starting configuration, which you can enhance as needed.
-
-For replication to start correctly, you want the master and slave databases to be nearly identical.  In particular they must both manage the same transaction log and the "position tag" in the master's log must be the same as, or ahead of, the slave's log position tag.  Setting up replication requires a sequence of operations that needs to happen correctly or you end up with a setup that seems right but doesn't start.
-
-## How?
-
-To begin with, you should have three independant devices running Ubuntu Linux:
-
-1. Your workstation
-2. The master host running ERPNext v13
-3. The slave host running ERPNext v13
-
-The entire setup and installation is driven from your workstation according to the variables you set in a shell script file: `envars.sh`.
-
-For our use we have, for example, a master VPS rented in North America and a slave VPS somewhere in Europe.  An equally valid setup would be to use Qemu/KVM, or Virtual Box, etc to create two virtual machines inside your workstation.  The point is to have two distinct target machines each with ERPNext installed in Ubuntu Linux
-
-You will not need to log into either of the other two *unless you use UID/PWD access with SSH*!  These scripts require PKI based SSH access, so you **will** need to prepare for that.
-
-
-
-### Log of a complete error-free execution.
-
-```shell
 
 you@xub22:~/projects/ERPNextFailOver$ ./prepareMasterAndSlave.sh;
 
@@ -40,7 +8,7 @@ you@xub22:~/projects/ERPNextFailOver$ ./prepareMasterAndSlave.sh;
 Checking presence of 'xmlstarlet' tool.
 dpkg-query: no packages found matching xmlstarlet
 
-* * * Do you accept to install 'xmlstarlet'  (  https://en.wikipedia.org/wiki/XMLStarlet ) * * *
+* * * Do you accept to install 'xmlstarlet'  (  https://en.wikipedia.org/wiki/XMLStarlet ) * * * 
 Type 'y' to approve, or any other key to quit :  y
 Ok.
 Reading package lists... Done
@@ -55,7 +23,7 @@ The following NEW packages will be installed:
 Need to get 265 kB of archives.
 After this operation, 631 kB of additional disk space will be used.
 Get:1 http://ca.archive.ubuntu.com/ubuntu jammy/universe amd64 xmlstarlet amd64 1.6.1-2.1 [265 kB]
-Fetched 265 kB in 1s (430 kB/s)
+Fetched 265 kB in 1s (430 kB/s)    
 Selecting previously unselected package xmlstarlet.
 (Reading database ... 178079 files and directories currently installed.)
 Preparing to unpack .../xmlstarlet_1.6.1-2.1_amd64.deb ...
@@ -71,7 +39,7 @@ Processing 1 added doc-base file...
 Checking presence of 'jq' tool.
 dpkg-query: no packages found matching jq
 
-* * * Do you accept to install 'jq'  * * *
+* * * Do you accept to install 'jq'  * * * 
 Type 'y' to approve, or any other key to quit :  y
 Ok.
 Reading package lists... Done
@@ -111,29 +79,29 @@ Was host alias use specified?
  - Found 'ssh-agent' already running.
 
                                          Adding Master host PKI key to agent
-Enter passphrase for /home/you/.ssh/admin_loso_erpnext_host:
+Enter passphrase for /home/you/.ssh/admin_loso_erpnext_host: 
 Identity added: /home/you/.ssh/admin_loso_erpnext_host (water.iridium.blue@gmail.com)
 
                                          Adding Slave host PKI key to agent
-Enter passphrase for /home/you/.ssh/adm_stg_erpnext_host:
+Enter passphrase for /home/you/.ssh/adm_stg_erpnext_host: 
 Identity added: /home/you/.ssh/adm_stg_erpnext_host (X22_VM)
 
-Testing connectivity ...
+Testing connectivity ...'
  - testing with command : 'ssh admin@loso.erpnext.host "whoami"'
  - testing with command  : 'ssh adm@stg.erpnext.host "whoami"'
 
                   No initial configuration errors found
                                -- o 0 o --
 
-Ready to prepare Master/Slave replication:
-  - Master:
+Ready to prepare Master/Slave replication: 
+  - Master: 
      - User: admin
      - Host: loso.erpnext.host has address 185.34.136.36
-  - Slave:
+  - Slave: 
      - User: adm
      - Host: stg.erpnext.host has address 85.239.234.6
 
-Press any key to proceed :
+Press any key to proceed : 
 |
 |
 V
@@ -153,7 +121,7 @@ Moving backup and restore handlers 'handleBackup.sh' to transfer directory '/dev
  - Making Master Tasks script :: /dev/shm/M_work/masterTasks.sh.
  - Making MariaDB script :: '/dev/shm/M_work/setUpSlave.sql'.
  - Making MariaDB config patch :: '/dev/shm/M_work/master_50-server.cnf.patch'.
-
+  
 Uploading Master tasks files 'M_work.tgz' to 'admin@loso.erpnext.host:/dev/shm'.
 Extracting content from uploaded file 'M_work.tgz' on Master.
 Executing script 'masterTasks.sh' on Master.
@@ -183,7 +151,7 @@ No VM guests are running outdated hypervisor (qemu) binaries on this host.
  - Making ERPNext supervisor restart script :: '/home/admin/restartERPNextSupervisor.sh'
  - Checking Frappe Bench directory location :: '/home/admin/frappe-bench-LENH'
  - Moving Backup and Restore handlers from '/dev/shm/M_work/BaRe' to Frappe Bench directory
- - Stopping ERPNext on Master ...
+ - Stopping ERPNext on Master ...  
 
 electronic_vouchers-service-Logichem: stopped
 frappe-bench-LENH-workers:frappe-bench-LENH-frappe-schedule: stopped
@@ -207,7 +175,7 @@ patching file 50-server.cnf
 
        Patched
 
- - Restarting MariaDB
+ - Restarting MariaDB  
  - Taking backup of Master database ...
 
 
@@ -247,7 +215,7 @@ Backup process completed! Elapsed time, 0h 0m 38s seconds
    - Restrict to DATABASE :: _091b776d72ba8e16
    - Open MySql port 3306 for remote host :: 85.239.234.6
 Rule added
- - Stopping MariaDB so that the backup can be restored on the Slave.
+ - Stopping MariaDB so that the backup can be restored on the Slave. 
  - Packaging results into :: '/dev/shm/M_rslt.tgz'
 Purging temporary files from Master.
 
@@ -267,6 +235,7 @@ Preparing slave ...
  - Copy backup of Master ('20221218_191404-loso_erpnext_host.tgz') to Slave work directory.
  - Making MariaDB script :: /dev/shm/S_work/setUpSlave.sql
  - Making MariaDB config patch :: '/dev/shm/S_work/50-server.cnf.patch'.
+  
  - Packaging Slave work files ('S_work.tgz') from '/dev/shm/S_work' in '/dev/shm' ...
  - Purging existing Slave work files from 'adm@stg.erpnext.host:/dev/shm'
  - Uploading Slave work files 'S_work.tgz' to 'adm@stg.erpnext.host:/dev/shm'
@@ -311,7 +280,7 @@ No VM guests are running outdated hypervisor (qemu) binaries on this host.
  - Found jq already installed
  - Checking Frappe Bench directory location :: '/home/adm/frappe-bench-SERPHT'
  - Moving Backup and Restore handlers from '/dev/shm/S_work/BaRe' to Frappe Bench directory
-   - Stopping ERPNext on Slave ...
+   - Stopping ERPNext on Slave ...  
 electronic_vouchers-service-Logichem: stopped
 frappe-bench-SERPHT-redis:frappe-bench-SERPHT-redis-cache: stopped
 frappe-bench-SERPHT-redis:frappe-bench-SERPHT-redis-socketio: stopped
@@ -362,7 +331,7 @@ Got MariaDB password from '/home/adm/frappe-bench-SERPHT/BaRe/../sites/stg.erpne
        - '20221218_191404-loso_erpnext_host-files.tar' becomes '20221218_191404-stg_erpnext_host-files.tar'.
        - '20221218_191404-loso_erpnext_host-private-files.tar' becomes '20221218_191404-stg_erpnext_host-private-files.tar'.
        - '20221218_191404-loso_erpnext_host-site_config_backup.json' becomes '20221218_191404-stg_erpnext_host-site_config_backup.json'.
-    - patch site name with sed.  -->  '20221218_191404-stg_erpnext_host-site_config_backup.json' from 'loso.erpnext.host' to 'stg.erpnext.host'
+    - patch site name with sed.  -->  '20221218_191404-stg_erpnext_host-site_config_backup.json' from 'loso.erpnext.host' to 'stg.erpnext.host' 
     - Creating new package from repackaged contents of '20221218_191404-loso_erpnext_host.tgz'.
         Resulting file is -
          - /home/adm/frappe-bench-SERPHT/BKP/20221218_191404-stg_erpnext_host.tgz
@@ -414,7 +383,7 @@ frappe-bench-SERPHT-workers:frappe-bench-SERPHT-frappe-long-worker-0: started
 Restore completed. Elapsed time, 0h 1m 44s seconds
  - Configuring MariaDB Slave for replication
  - Patching '50-server.cnf' with '/dev/shm/S_work/master_50-server.cnf.patch'
- - Restarting MariaDB
+ - Restarting MariaDB  
  - Enabling Slave connection to Master
  - Purging temporary files from Slave. *** SKIPPED ***
 
@@ -423,9 +392,9 @@ Completed remote job : '/dev/shm/S_work/slaveTasks.sh'.
 
  - Finished with Slave.
 
- - Restarting MariaDB for user 'admin' on Master host 'loso.erpnext.host'
+ - Restarting MariaDB for user 'admin' on Master host 'loso.erpnext.host' 
      Active: active (running) since Mon 2022-12-19 01:17:44 CET; 51ms ago
- - Restarting MariaDB for user 'adm' on Slave host 'stg.erpnext.host'
+ - Restarting MariaDB for user 'adm' on Slave host 'stg.erpnext.host' 
      Active: active (running) since Mon 2022-12-19 01:17:51 CET; 22ms ago
 
 
@@ -435,7 +404,7 @@ Found slave status to be ...
            Read_Master_Log_Pos: 344
               Slave_IO_Running: Yes
              Slave_SQL_Running: Yes
-                 Last_IO_Error:
+                 Last_IO_Error: 
        Slave_SQL_Running_State: Slave has read all relay log; waiting for more updates
 
 Restarting ERPNext on Master ...
@@ -450,7 +419,4 @@ frappe-bench-LENH-workers:frappe-bench-LENH-frappe-default-worker-0: started
 frappe-bench-LENH-workers:frappe-bench-LENH-frappe-short-worker-0: started
 frappe-bench-LENH-workers:frappe-bench-LENH-frappe-long-worker-0: started
 ------------------------------ Finished ----------------------------------
-you@xub22:~/projects/ERPNextFailOver$
-
-```
-
+you@xub22:~/projects/ERPNextFailOver$ 
