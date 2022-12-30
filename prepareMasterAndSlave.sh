@@ -164,11 +164,11 @@ fi;
 
 if [[  "${TEST_CONNECTIVITY}" == "yes" ]]; then
   echo -e "\nTesting connectivity ...'";
-  echo -e " - testing with command : 'ssh ${THE_MASTER} \"whoami\"'";
-  [ "$(ssh ${THE_MASTER} \"whoami\")" == "${MASTER_HOST_USR}" ] || ERRORS="${ERRORS}\n  - Unable to get HOME directory of remote host '${THE_MASTER}'.";
+  echo -e " - testing with command : 'ssh -p ${MASTER_HOST_SSH_PORT} ${THE_MASTER} \"whoami\"'";
+  [ "$(ssh -p ${MASTER_HOST_SSH_PORT} ${THE_MASTER} \"whoami\")" == "${MASTER_HOST_USR}" ] || ERRORS="${ERRORS}\n  - Unable to get HOME directory of remote host '${THE_MASTER}'.";
 
-  echo -e " - testing with command  : 'ssh ${THE_SLAVE} \"whoami\"'";
-  [ "$(ssh ${THE_SLAVE} \"whoami\")" == "${SLAVE_HOST_USR}" ] || ERRORS="${ERRORS}\n  - Unable to get HOME directory of remote host '${THE_SLAVE}'.";
+  echo -e " - testing with command  : 'ssh -p ${SLAVE_HOST_SSH_PORT} ${THE_SLAVE} \"whoami\"'";
+  [ "$(ssh -p ${SLAVE_HOST_SSH_PORT} ${THE_SLAVE} \"whoami\")" == "${SLAVE_HOST_USR}" ] || ERRORS="${ERRORS}\n  - Unable to get HOME directory of remote host '${THE_SLAVE}'.";
 else
   echo -e "${pGOLD}Skipping testing connectivity. (TEST_CONNECTIVITY =='${TEST_CONNECTIVITY}').${pDFLT}";
 fi;
