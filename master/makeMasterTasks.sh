@@ -10,7 +10,8 @@ export THIS_SCRIPT=$( basename ${BASH_SOURCE} )
 function makeMasterTasks () {
 
   echo -e " - Making Master Tasks script :: ${MSTR_WRK_DIR}/${MSTR_JOB}."
-  declare SLAVE_IP=$(dig ${SLAVE_HOST_URL} A +short);
+  declare SLAVE_IP=$(ssh ${SLAVE_HOST_USR}@${SLAVE_HOST_URL} "dig +short myip.opendns.com @resolver1.opendns.com");
+  echo -e "      Expecting slave IP :: ${SLAVE_IP}."
 
   cat << EOFCT > ${MSTR_WRK_DIR}/${MSTR_JOB}
 #!/usr/bin/env bash

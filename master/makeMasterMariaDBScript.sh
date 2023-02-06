@@ -8,7 +8,7 @@ export THIS_SCRIPT=$( basename ${BASH_SOURCE} )
 function makeMasterMariaDBScript () {
   echo -e " - Making MariaDB script :: '${MSTR_WRK_DIR}/${MARIADB_SCRIPT}'.";
 
-  declare SLAVE_IP=$(dig ${SLAVE_HOST_URL} A +short);
+  declare SLAVE_IP=$(ssh ${SLAVE_HOST_USR}@${SLAVE_HOST_URL} "dig +short myip.opendns.com @resolver1.opendns.com");
   declare SLAVE_USR=${SLAVE_HOST_URL//./_};
 
   cat << EOFMDB > ${MSTR_WRK_DIR}/${MARIADB_SCRIPT}

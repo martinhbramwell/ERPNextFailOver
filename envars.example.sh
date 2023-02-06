@@ -30,6 +30,7 @@ export MASTER_BENCH_HOME=/home/${MASTER_HOST_USR};                    # Director
 export MASTER_BENCH_NAME=frappe-bench-LENH;                           # The name given to the Frappe Bench directory
 export MASTER_BENCH_PATH=${MASTER_BENCH_HOME}/${MASTER_BENCH_NAME};   # Full path to Bench directory
 
+export MASTER_DB_ROOT_PWD="password#2";                               # Root password for MariaDb of master
 
 
 ###############################
@@ -40,15 +41,15 @@ export MASTER_BENCH_PATH=${MASTER_BENCH_HOME}/${MASTER_BENCH_NAME};   # Full pat
 
 export SLAVE_HOST_URL="stg.erpnext.host";                             # Domain name of host
 export SLAVE_HOST_USR="adm";                                          # ERPNext user name
-export SLAVE_HOST_PWD="password#2";                                   # ERPNext user password
+export SLAVE_HOST_PWD="password#3";                                   # ERPNext user password
 export SLAVE_HOST_KEY="adm_stg_erpnext_host";                         # ERPNext user SSH key registered in authorized_keys of user 'SLAVE_HOST_USR'
 export SLAVE_HOST_ALIAS="serpht";                                     # SSH host alias name
 export SLAVE_BENCH_HOME=/home/${SLAVE_HOST_USR};                      # Directory where the Frappe Bench is installed
 export SLAVE_BENCH_NAME=frappe-bench-SERPHT;                          # The name given to the Frappe Bench directory
 export SLAVE_BENCH_PATH=${SLAVE_BENCH_HOME}/${SLAVE_BENCH_NAME};      # Full path to Bench directory
 
-export SLAVE_DB_ROOT_PWD="password#3";                                # Root password for MariaDb of slave         
-export SLAVE_DB_PWD="password#4";                                     # Replicator slave password         
+export SLAVE_DB_ROOT_PWD="password#4";                                # Root password for MariaDb of slave
+export SLAVE_DB_PWD="password#5";                                     # Replicator slave password         
 
 export RESTORE_SITE_CONFIG="yes";
 export KEEP_SITE_PASSWORD="yes";
@@ -69,7 +70,12 @@ export UPLOAD_MASTER_BACKUP="yes";                                    # If "yes"
 
 # Reset Master
 
-declare SLAVE_IP=$(dig ${SLAVE_HOST_URL} A +short);
+echo -e "
+Some useful commands ......
+
+";
+declare SLAVE_IP=$(ssh ${SLAVE_HOST_USR}@${SLAVE_HOST_URL} "dig +short myip.opendns.com @resolver1.opendns.com");
+# declare SLAVE_IP=$(dig ${SLAVE_HOST_URL} A +short);
 declare SLAVE_USR=${SLAVE_HOST_URL//./_};
 
 echo -e "

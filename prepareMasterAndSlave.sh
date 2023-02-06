@@ -181,11 +181,13 @@ else
   echo -e "                               -- o 0 o --${pDFLT}";
   echo -e "\n\nReady to prepare Master/Slave replication: "
   echo -e "  - Master: "
-  echo -e "     - User: ${MASTER_HOST_USR}"
-  echo -e "     - Host: $(host ${MASTER_HOST_URL})"
+  echo -e "     - User           : ${MASTER_HOST_USR}"
+  echo -e "     - Host           : $(host ${MASTER_HOST_URL})"
   echo -e "  - Slave: "
-  echo -e "     - User: ${SLAVE_HOST_USR}"
-  echo -e "     - Host: $(host ${SLAVE_HOST_URL})"
+  echo -e "     - User           : ${SLAVE_HOST_USR}"
+  declare SLAVE_IP=$(ssh ${SLAVE_HOST_USR}@${SLAVE_HOST_URL} "dig +short myip.opendns.com @resolver1.opendns.com");
+  echo -e "     - Host (local)   :        $(host ${SLAVE_HOST_URL})"
+  echo -e "     - Host (public)  : ${SLAVE_HOST_URL} has public address ${SLAVE_IP}"
   echo -e ""
   if [[ -z ${1} ]]; then
     read -p "Press any key to proceed : "  -n1 -s;

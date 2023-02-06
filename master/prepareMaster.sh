@@ -26,6 +26,10 @@ function prepareMaster() {
   makeMasterMariaDBScript;
   makeMasterMariaDBconfPatch;
 
+  pushd ${MSTR_WRK_DIR}/BaRe >/dev/null;
+    echo "export MYPWD=\"${MASTER_DB_ROOT_PWD}\";" >> Master_envars.sh;
+  popd >/dev/null;
+
   pushd ${TMP_DIR} >/dev/null
     tar zcvf ${MSTR_WRK_FILES} ${MSTR_WRK} >/dev/null;
   popd >/dev/null
