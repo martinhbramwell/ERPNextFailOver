@@ -3,7 +3,7 @@
 ### What?
 *ERPNextFailOver* is a tool to automate setting up Master / Slave continuous replication for ERPNext.
 
-To be more precise, it sets up MySql/MariaDb replication, but also provides you with tools to help you migrate site specific details, such as `site_config.json`.  You will also find included `handleBackup.sh` and `handleRestore.sh` which take care of backing up an origin site and restoring to a destination having a different site name and URL.
+To be more precise, it sets up MySql/MariaDb replication, but also provides you with tools to help you migrate site specific details, such as `site_config.json`.  You will also find included `handleBackup.sh` and `handleRestore.sh` which take care of backing up an origin site and restoring to a destination having a different site name and URL. This includes correcting the Social Login details, which must correspond to the site name in use  (Google only, so far).
 
 ### Why?
 

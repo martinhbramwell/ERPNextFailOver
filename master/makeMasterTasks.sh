@@ -148,20 +148,27 @@ else
   exit 1;
 fi;
 
-echo -e "\n\n - Installing dependencies.";
-declare PKG="xmlstarlet";
-ensurePkgIsInstalled;
+# echo -e "${ALLOW_ALTERING_MASTER}\n${pYELLOW}----------------- Master Tasks Curtailed --------------------------${pDFLT}";
+# exit;
 
-declare PKG="jq";
-ensurePkgIsInstalled;
+if [[ ${ALLOW_ALTERING_MASTER} == "yes" ]]; then
+  echo -e "\n\n - Installing dependencies.";
+  declare PKG="xmlstarlet";
+  ensurePkgIsInstalled;
 
-makeRestartERPNextSupervisorScript;
+  declare PKG="jq";
+  ensurePkgIsInstalled;
 
-installBackupAndRestoreTools;
+  makeRestartERPNextSupervisorScript;
 
-stopERPNext;
+  installBackupAndRestoreTools;
 
-configureDBforReplication;
+  stopERPNext;
+
+  configureDBforReplication;
+else
+  echo -e "\n\n${pYELLOW} - Won't install dependencies. (ALLOW_ALTERING_MASTER != 'yes')${pDFLT}";
+fi;
 
 backupDatabase;
 
@@ -174,11 +181,16 @@ backupDatabase;
     # # pwd;
     # exit;
 
-echo -e " - Enabling Slave user access and reading status of Master";
-pushd ${MSTR_WRK_DIR} >/dev/null;
-  # ls -la
-  mysql -AX < ${MARIADB_SCRIPT} > ${MSTR_RSLT_DIR}/${MSTR_STATUS_RSLT};
-popd >/dev/null;
+if [[ ${ALLOW_ALTERING_MASTER} == "yes" ]]; then
+  echo -e " - Enabling Slave user access and reading status of Master";
+  pushd ${MSTR_WRK_DIR} >/dev/null;
+    # ls -la
+    mysql -AX < ${MARIADB_SCRIPT} > ${MSTR_RSLT_DIR}/${MSTR_STATUS_RSLT};
+  popd >/dev/null;
+else
+  echo -e "\n\n${pYELLOW} - Won't change slave user access. (ALLOW_ALTERING_MASTER != 'yes')${pDFLT}";
+  mysql -Xe "show master status" mysql > ${MSTR_RSLT_DIR}/${MSTR_STATUS_RSLT};
+fi;
 
 export STATUS_FILE=\$(xmlstarlet sel -t -v "//resultset/row/field[@name='File']" ${MSTR_RSLT_DIR}/${MSTR_STATUS_RSLT});
 echo -e "   - Log FILE :: \${STATUS_FILE}";
@@ -189,12 +201,22 @@ echo -e "   - Log file POSITION :: \${STATUS_POS}";
 export STATUS_DB=\$(xmlstarlet sel -t -v "//resultset/row/field[@name='Binlog_Do_DB']" ${MSTR_RSLT_DIR}/${MSTR_STATUS_RSLT});
 echo -e "   - Restrict to DATABASE :: \${STATUS_DB}";
 
-echo -e "   - Open MySql port 3306 for remote host :: ${SLAVE_IP}";
-sudo ufw allow from ${SLAVE_IP} to any port 3306;
+if [[ ${ALLOW_ALTERING_MASTER} == "yes" ]]; then
+  echo -e "   - Open MySql port 3306 for remote host :: ${SLAVE_IP}";
+  sudo ufw allow from ${SLAVE_IP} to any port 3306;
+else
+  echo -e "\n\n${pYELLOW} - Won't alter firewall. (ALLOW_ALTERING_MASTER != 'yes')${pDFLT}";
+fi;
 
-echo -e "${pYELLOW} - Stopping MariaDB so that the backup can be restored on the Slave. ${pDFLT}";
-sudo -A systemctl stop mariadb;
-# sudo -A systemctl status mariadb;
+if [[ ${ALLOW_ALTERING_MASTER} == "yes" ]]; then
+  echo -e "${pYELLOW} - Stopping MariaDB so that the backup can be restored on the Slave. ${pDFLT}";
+  sudo -A systemctl stop mariadb;
+  # sudo -A systemctl status mariadb;
+else
+  echo -e "\n\n${pYELLOW} - Won't pause MariaDB. (ALLOW_ALTERING_MASTER != 'yes')${pDFLT}";
+  sudo -A systemctl status mariadb;
+fi;
+
 
 echo -e " - Packaging results into :: '${TMP_DIR}/${MSTR_RSLT_PKG}'";
 pushd ${TMP_DIR} >/dev/null;

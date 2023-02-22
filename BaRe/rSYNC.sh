@@ -1,25 +1,28 @@
+#!/usr/bin/env bash
+#
+export SCRIPT_DIR="$( cd "$( dirname "$0" )" && pwd )";
+export SCRIPT_NAME=$(basename "$0");
+
+export REMOTE_PROJECT_DIR="returnable";
+
 source ../envars.sh;
 
-export TARGET_DIR="/home/${ERP_USER_NAME}/${TARGET_BENCH_NAME}/BaRe";
+export REMOTE_PROJECT="${SLAVE_HOST_ALIAS}:/home/${SLAVE_HOST_USR}/${SLAVE_BENCH_NAME}/BaRe";
+
 
 if [[ -z ${1} ]]; then
   echo -e "Usage: ./rSync y"
-  echo -e "Will synchronize this directory with :: ${SERVER}:${TARGET_DIR}";
+  echo -e "Will synchronize this directory '$(pwd)' with :: ${REMOTE_PROJECT}";
   exit;
 else
-  echo -e "Synching this directory with :: ${SERVER}:${TARGET_DIR}";
+  echo -e "Synching this directory '$(pwd)' with remote directory :: ${REMOTE_PROJECT}";
 fi;
 
-declare PKG="inotify-tools";
-dpkg-query -l ${PKG} &>/dev/null || sudo -A apt-get -y install ${PKG};
-declare PKG="tree";
-dpkg-query -l ${PKG} &>/dev/null || sudo -A apt-get -y install ${PKG};
-
-ssh -t ${SERVER} "mkdir -p ${TARGET_DIR}";
-echo -e "Target prepared. Synching has begun.";
 while inotifywait -qqr -e close_write,move,create,delete ./*; do
-  rsync -avx . ${SERVER}:${TARGET_DIR};
+  rsync -rzavx --update . ${REMOTE_PROJECT};
 done;
 
+  # echo -e "\n\n/* ~~~~~~~~~ Curtailed ~~~~~~~ ${SCRIPT_DIR}/${SCRIPT_NAME} ~~~~~~~~ */
 
-# ./projects/ce_sri/ros.sh ./projects/ce_sri "./doIt.sh prepareServer_2.sh";
+  # ";
+  # exit;

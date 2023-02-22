@@ -6,10 +6,10 @@ export CURR_SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )"   && pwd )
 export SCRIPT_NAME=$( basename ${0#-} );
 export THIS_SCRIPT=$( basename ${BASH_SOURCE} )
 
-echo -e "SCRIPT_DIR ${SCRIPT_DIR}";
-echo -e "CURR_SCRIPT_DIR ${CURR_SCRIPT_DIR}";
-echo -e "SCRIPT_NAME ${SCRIPT_NAME}";
-echo -e "THIS_SCRIPT ${THIS_SCRIPT}";
+# echo -e "SCRIPT_DIR ${SCRIPT_DIR}";
+# echo -e "CURR_SCRIPT_DIR ${CURR_SCRIPT_DIR}";
+# echo -e "SCRIPT_NAME ${SCRIPT_NAME}";
+# echo -e "THIS_SCRIPT ${THIS_SCRIPT}";
 
 source ${CURR_SCRIPT_DIR}/utils.sh;
 
@@ -20,16 +20,6 @@ declare TMP_BACKUP_DIR="${TMP_DIR}/BKP";
 declare BACKUP_DIR="${TARGET_BENCH}/BKP";
 declare BACKUP_FILE_NAME_HOLDER="${BACKUP_DIR}/BACKUP.txt";
 declare ACTIVE_DATABASE="";
-
-  # pwd;
-  # ls -la;
-  # echo -e "
-  #            ***  CURTAILED  ***
-  #         Before restoring backup
-  #     ==========================================
-  # "${ENVIRONMENT_VARIABLES}"
-  # ";
-  # exit;
 
 function getNewSiteNameFromFileName() {
   declare filefrag=$(echo -e "${1}" | grep -o "\-.*\.");
@@ -95,6 +85,64 @@ function repackageWithCorrectedSiteName() {
   # ls -la;
   # exit;
 }
+
+function restoreSocialLoginConfig() {
+  DSIT="../sites/${ERPNEXT_SITE_URL}/"
+  PRIVATES="${DSIT}/private/files"
+  source ${PRIVATES}/apikey.sh;
+  # echo -e ${KEYS}
+  RESOURCE_URL="https://${ERPNEXT_SITE_URL}/api/resource";
+  SWITCHES="--location  --no-progress-meter --request";
+  AUTH_HEADER="Authorization: token ${KEYS}";
+  CONTENT_HEADER="Content-Type: application/json";
+  SLK="Social%20Login%20Key";
+
+  # echo -e curl ${SWITCHES} GET "${RESOURCE_URL}/Company" --header "${AUTH_HEADER}"
+
+  RSLT=$(curl ${SWITCHES} GET "${RESOURCE_URL}/Company" --header "${AUTH_HEADER}");
+  if [ $? != 0 ]; then
+    echo -e "${pRED}     *** API call to get name of company failed. ***${pDFLT}
+    Command was : curl ${SWITCHES} GET \"${RESOURCE_URL}/Company\" --header \"Authorization: token \${KEYS}\"";
+  else
+    # echo -e $?;
+    # echo ${RSLT} | jq -r .;
+    COMPANY=$(echo ${RSLT} | jq -r .data[0].name)
+    # COMPANY=$(curl ${SWITCHES} DELETE "${RESOURCE_URL}/Social Login Key/google" --header "${AUTH_HEADER}" | jq -r .data);
+
+    SOCIAL_LOGIN_CONF_FILE="socials_google.json";
+    SOCIAL_LOGIN_CONF=${DSIT}/${SOCIAL_LOGIN_CONF_FILE};
+    if [[ ! -f ${SOCIAL_LOGIN_CONF} ]]; then
+      echo -e "\n\n${pYELLOW}Unable to find Social Login (Google) config for ${COMPANY} at '$(pwd)${SOCIAL_LOGIN_CONF}'${pDFLT}";
+    else
+      echo -e "\n\n${pYELLOW}Ready to restore Social Login (Google) configuration file for \"${COMPANY}\".${pDFLT}";
+      echo -e "  - deleting previous Social Login config...";
+      R0SLT=$(curl ${SWITCHES} DELETE --header "${AUTH_HEADER}" --header "${CONTENT_HEADER}" "${RESOURCE_URL}/${SLK}/google");
+      # echo ${RSLT} | jq -r .;
+      MSG=$(echo ${RSLT} | jq -r .message)
+      echo -e "          - deleted  (\"message\": \"${MSG}\")";
+      echo -e "  - inserting correct Social Login config";
+
+      # jq -r . ${SOCIAL_LOGIN_CONF}
+
+      # curl ${SWITCHES} POST --header "${AUTH_HEADER}" --header "${CONTENT_HEADER}" -d @${SOCIAL_LOGIN_CONF} "${RESOURCE_URL}/${SLK}";
+      RSLT=$(curl ${SWITCHES} POST --header "${AUTH_HEADER}" --header "${CONTENT_HEADER}" -d @${SOCIAL_LOGIN_CONF} "${RESOURCE_URL}/${SLK}");
+      # echo ${RSLT} | jq -r .;
+      MSG=$(echo ${RSLT} | jq -r .data.social_login_provider)
+
+      echo -e "          - inserted  (\"social_login_provider\": \"${MSG}\")";
+    fi;
+  fi;
+}
+
+
+# echo -e "
+#            ***  CURTAILED  ***
+#         Before restoring backup
+#     ==========================================
+# "${ENVIRONMENT_VARIABLES}"
+# ";
+
+# exit;
 
 function restoreDatabase() {
 
@@ -227,14 +275,15 @@ function restoreDatabase() {
 
 # echo -e "\n${pRED}----------------- * Restore handler curtailed * --------------------------${pDFLT}\n${EXISTING_DB_PASSWORD}";
 # exit;
+
       echo -e "${pDFLT}         started ...";
       bench --site ${ERPNEXT_SITE_URL} --force restore ${PASS} ${FILE} ${PRIV} ${DATA};
       echo -e "         ... restored";
 
-      pushd BKP >/dev/null;
+      pushd ./sites/${ERPNEXT_SITE_URL}/private/files >/dev/null;
         echo -e "\n      - Restoring database views";
         echo -e "${pDFLT}         started ...";
-        mysql -AD ${ACTIVE_DATABASE} < ./views.ddl;
+        mysql -AD ${ACTIVE_DATABASE} < ./ddlViews.sql;
         echo -e "         ... restored";
       popd >/dev/null;
 
@@ -249,7 +298,6 @@ function restoreDatabase() {
     fi;
   popd >/dev/null;
 
-  seconds=$(($(date +'%s') - $start));
 }
 
 if [[ ${SCRIPT_NAME} = ${THIS_SCRIPT} ]] ; then
@@ -267,11 +315,21 @@ if [[ ${SCRIPT_NAME} = ${THIS_SCRIPT} ]] ; then
     echo -e "\n      - Restarting ERPNext${pFAINT_BLUE}";
     sudo -A supervisorctl start all;
     echo -e "${pDFLT}            restarted";
+
+    echo -e "\n - Delaying for restart to complete...";
+    sleep 10;
+
+    echo -e "\n - Restoring Social Login ...";
+    restoreSocialLoginConfig;
+    echo -e "${pDFLT}   restored";
+
+
   else
     echo -e "\n      - Restarting ERPNext ${pRED}*** SKIPPED ***${pDFLT}";
   fi;
 
-  echo -e "\n\n${pGREEN}Restore completed. Elapsed time, $(secs_to_human $seconds) seconds
+  seconds=$(($(date +'%s') - ${start}));
+  echo -e "\n\n${pGREEN}Restore completed. Elapsed time, $(secs_to_human ${seconds}) seconds
 
   ${pDFLT}";
 

@@ -121,18 +121,26 @@ export MASTER_IP_ADDR=${STR#${THST} has address }
 
 echo -e "\nWas host alias use specified?";
 if [[  "${USE_HOST_ALIAS}" = "yes" ]]; then
-    echo -e " - Using host aliases";
+    echo -e "             Yes!  Will use host aliases";
     export THE_MASTER="${MASTER_HOST_ALIAS}";
     export THE_SLAVE="${SLAVE_HOST_ALIAS}";
 else
-    if ps -p $SSH_AGENT_PID > /dev/null
-    then
-       echo -e " - Found 'ssh-agent' already running."
-       # Do something knowing the pid exists, i.e. the process with $PID is running
-    else
+    if [[ -z ${SSH_AGENT_PID} ]]; then
       echo -e " - No 'ssh-agent' found.  Starting it ...";
       eval "$(ssh-agent -s)";
-    fi
+    else
+      if ps -p ${SSH_AGENT_PID} > /dev/null
+      then
+         echo -e " - Found 'ssh-agent' already running."
+         # Do something knowing the pid exists, i.e. the process with $PID is running
+      else
+        echo -e " - No 'ssh-agent' found.  Starting it ...";
+        eval "$(ssh-agent -s)";
+      fi
+    fi;
+
+# echo -e "${SSH_AGENT_PID}\n${pYELLOW} ${KEY_CNT} ------------- prepareMasterAndSlave Curtailed ---------------------${pDFLT}";
+# exit;
 
     declare KEY_CNT="0";
     declare CURRENTLY_ADDED_KEYS=$(ssh-add -l);
@@ -154,9 +162,6 @@ else
       echo -e "\n                                         Slave host PKI key was added to agent previously";
     fi;
 
-# echo -e "${pYELLOW} ${KEY_CNT} ------------- prepareMasterAndSlave Curtailed ---------------------${pDFLT}";
-# exit;
-
     export THE_MASTER=${MASTER_HOST_USR}@${MASTER_HOST_URL};
     export THE_SLAVE=${SLAVE_HOST_USR}@${SLAVE_HOST_URL};
 fi;
@@ -173,6 +178,10 @@ else
   echo -e "${pGOLD}Skipping testing connectivity. (TEST_CONNECTIVITY =='${TEST_CONNECTIVITY}').${pDFLT}";
 fi;
 
+# echo -e "${SSH_AGENT_PID}\n${pYELLOW} ${KEY_CNT} ------------- prepareMasterAndSlave Curtailed ---------------------${pDFLT}";
+# exit;
+
+
 if [[ "${ERRORS}" != "${ERROR_MSG}" ]]; then
   echo -e "${pRED}\n\nThere are errors:\n${pDFLT}\n${ERRORS}\n\n${pRED}Cannot continue.\n~~~~~~~~~~~~~~~${pDFLT}";
   exit;
@@ -185,7 +194,8 @@ else
   echo -e "     - Host           : $(host ${MASTER_HOST_URL})"
   echo -e "  - Slave: "
   echo -e "     - User           : ${SLAVE_HOST_USR}"
-  declare SLAVE_IP=$(ssh ${SLAVE_HOST_USR}@${SLAVE_HOST_URL} "dig +short myip.opendns.com @resolver1.opendns.com");
+  declare SLAVE_IP=$1
+  (ssh ${SLAVE_HOST_USR}@${SLAVE_HOST_URL} "dig +short myip.opendns.com @resolver1.opendns.com");
   echo -e "     - Host (local)   :        $(host ${SLAVE_HOST_URL})"
   echo -e "     - Host (public)  : ${SLAVE_HOST_URL} has public address ${SLAVE_IP}"
   echo -e ""
@@ -251,9 +261,10 @@ pushd ${TMP_DIR} >/dev/null;
           MASTER_OK="yes"
           echo -e "\nReady to 'prepareSlave'";
 
+          prepareSlave;
+
 # echo -e "${pYELLOW}------------- prepareMasterAndSlave Curtailed ---------------------${pDFLT}";
 # exit;
-          prepareSlave;
           
 # echo -e "Purging temporary files from workstation.";
 # # tree /dev/shm;
@@ -263,10 +274,14 @@ pushd ${TMP_DIR} >/dev/null;
 
 
           ssh ${THE_MASTER} ${MSTR_WRK_DIR}/${MARIA_RST_SCRIPT};
-          sleep 5;
+
+          declare WAIT=90;
+          echo -e "\n\nSleeping for ${WAIT} seconds, before starting slave.";
+          sleep ${WAIT};
+
           ssh ${THE_SLAVE} ${SLAV_WRK_DIR}/${MARIA_RST_SCRIPT};
 
-          declare WAIT=75;
+          declare WAIT=60;
           echo -e "\n\nSleeping for ${WAIT} seconds, before checking slave status.";
           sleep ${WAIT};
 

@@ -63,58 +63,61 @@ export KEEP_SITE_PASSWORD="yes";
 
 # export DRY_RUN_ONLY="yes";                 not yet implemented        # If "yes", run checks but make no permanent changes 
 export TEST_CONNECTIVITY="yes"                                        # If "yes", the ability to log on and execute a command will be tested for each host.
-export REPEAT_SLAVE_WITHOUT_MASTER="no";                              # If "yes", skips uploads to slave and all calls to and downloads from master
+export ALLOW_ALTERING_MASTER="no";                                    # If "no", assume master was prepared previously. Collect necessary data for fixed/new slave.
+export REPEAT_SLAVE_WITHOUT_MASTER="no";                              # If "yes", skips uploads to slave and all calls to and downloads from master. (Fast test)
 export UPLOAD_MASTER_BACKUP="yes";                                    # If "yes", upload master files to slave (ignored if REPEAT_SLAVE_WITHOUT_MASTER="no")
 
 
+if [[ 0 == 1 ]]; then
 
-# Reset Master
+    echo -e "
+        Some useful commands ......
+    ";
 
-echo -e "
-Some useful commands ......
+    # Reset Master
 
-";
-declare SLAVE_IP=$(ssh ${SLAVE_HOST_USR}@${SLAVE_HOST_URL} "dig +short myip.opendns.com @resolver1.opendns.com");
-# declare SLAVE_IP=$(dig ${SLAVE_HOST_URL} A +short);
-declare SLAVE_USR=${SLAVE_HOST_URL//./_};
+    declare SLAVE_IP=$(ssh ${SLAVE_HOST_USR}@${SLAVE_HOST_URL} "dig +short myip.opendns.com @resolver1.opendns.com");
+    # declare SLAVE_IP=$(dig ${SLAVE_HOST_URL} A +short);
+    declare SLAVE_USR=${SLAVE_HOST_URL//./_};
 
-echo -e "
+    echo -e "
 
-sudo -A cp ${HOME}/${MASTER_BENCH_NAME}/BaRe/misc/50-server.cnf /etc/mysql/mariadb.conf.d;
+    sudo -A cp ${HOME}/${MASTER_BENCH_NAME}/BaRe/misc/50-server.cnf /etc/mysql/mariadb.conf.d;
 
-sudo -A systemctl restart mariadb;
+    sudo -A systemctl restart mariadb;
 
-mysql mysql;
+    mysql mysql;
 
-# CREATE USER '${SLAVE_USR}'@'${SLAVE_IP}' IDENTIFIED BY '${SLAVE_DB_PWD}';
-# GRANT REPLICATION SLAVE ON *.* TO '${SLAVE_USR}'@'${SLAVE_IP}';
+    # CREATE USER '${SLAVE_USR}'@'${SLAVE_IP}' IDENTIFIED BY '${SLAVE_DB_PWD}';
+    # GRANT REPLICATION SLAVE ON *.* TO '${SLAVE_USR}'@'${SLAVE_IP}';
 
-SELECT Host, User, Repl_slave_priv, Delete_priv FROM user;
-SELECT Host, Db, User FROM db;
+    SELECT Host, User, Repl_slave_priv, Delete_priv FROM user;
+    SELECT Host, Db, User FROM db;
 
-DROP USER ${SLAVE_USR};
-FLUSH PRIVILEGES;
-SHOW MASTER STATUS;
-";
+    DROP USER ${SLAVE_USR};
+    FLUSH PRIVILEGES;
+    SHOW MASTER STATUS;
+    ";
 
-# Reset Slave
+    # Reset Slave
 
-echo -e "
+    echo -e "
 
-sudo -A cp ${HOME}/${SLAVE_BENCH_NAME}/BaRe/misc/50-server.cnf /etc/mysql/mariadb.conf.d;
+    sudo -A cp ${HOME}/${SLAVE_BENCH_NAME}/BaRe/misc/50-server.cnf /etc/mysql/mariadb.conf.d;
 
-sudo -A systemctl restart mariadb;
+    sudo -A systemctl restart mariadb;
 
-mysql mysql;
+    mysql mysql;
 
-FLUSH PRIVILEGES;
+    FLUSH PRIVILEGES;
 
-RESET MASTER;
+    RESET MASTER;
 
-STOP SLAVE;
+    STOP SLAVE;
 
-SHOW SLAVE STATUS;
-";
+    SHOW SLAVE STATUS;
+    ";
+fi;
 
 
 
