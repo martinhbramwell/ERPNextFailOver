@@ -32,11 +32,11 @@ function ensure_SUDO_ASKPASS () {
   echo -e " - Testing 'SUDO_ASKPASS' capability. ( SUDO_ASKPASS = >\${SUDO_ASKPASS}< )";
   if [[ "${ALLOW_SUDO_ASKPASS_CREATION}" == "yes" ]]; then
     echo -e "    - Configuration allows ASKPASS creation.";
-    if [ -z ${MASTER_HOST_PWD} ]; then
+    if [ "$([ -z ${MASTER_HOST_PWD} ] && echo N)" == "N"  ]; then
       echo -e "    - Configuration provides no password.";
       return 1;
     else
-      echo -e "    - Found password in configuration file. Trying uploaded ASK_PASS emmitter.";
+      echo -e "    - Found password in configuration file.";
       export SUDO_ASKPASS=${MSTR_WRK_DIR}/.supwd.sh;
     fi;
   else
@@ -44,12 +44,15 @@ function ensure_SUDO_ASKPASS () {
     return 1;
   fi;
 
+  echo -e "    - Trying uploaded ASK_PASS emmitter.";
   # declare TEST_RSLT=\$(sudo -A touch /etc/hostname);
   sudo -A touch /etc/hostname;
   if [ \$? -ne 0 ]; then
-    # echo -e "SUDO_ASKPASS ==> \${SUDO_ASKPASS}";
+    echo -e "SUDO_ASKPASS ==> \${SUDO_ASKPASS}";
     if [ ! -f \${SUDO_ASKPASS} ]; then
       echo -e "${pRED}\n\n* * *          There is no file: '\${SUDO_ASKPASS}'                    * * * ${pDFLT}";
+    else
+      echo -e "${pRED}\n\n* * *          Are you sure the pwd from '\${SUDO_ASKPASS}' is correct?                   * * * ${pDFLT}";
     fi
     return 1;
   fi;

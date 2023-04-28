@@ -37,20 +37,9 @@ pushd ${TARGET_BENCH} >/dev/null;
 
   echo -e "\n - Backing up \"${COMMENT}\" for site ${SOURCE_HOST} (in ${BACKUP_DIR}).";
 
-  pushd sites/${SOURCE_HOST} >/dev/null;
-    DB_NAME=$(jq -r .db_name ${SITE_CONFIG});
-    pushd private/files >/dev/null;
-      echo -e "   - Saving database views constructors to site private files directory. (db: ${DB_NAME})";
-      mysql -AD ${DB_NAME} \
-           --skip-column-names \
-           --batch \
-           -e 'select CONCAT("DROP TABLE IF EXISTS ", TABLE_NAME, "; CREATE OR REPLACE VIEW ", TABLE_NAME, " AS ", VIEW_DEFINITION, "; ") as ddl FROM information_schema.views WHERE table_schema = (SELECT database() FROM dual)' \
-        > ddlViews.sql;
-    popd >/dev/null;
-  popd >/dev/null;
-
   mkdir -p ${BACKUP_DIR};
   
+  DB_NAME=$(jq -r .db_name sites/${SOURCE_HOST}/${SITE_CONFIG});
   
   echo -e "   - Backup command is:\n        ==>  bench --site ${SOURCE_HOST} backup --with-files > ${TMP_DIR}/${RPRT};";
   echo -e "     - Will archive database (${DB_NAME}) and files to ${FROM}";
@@ -60,8 +49,6 @@ pushd ${TARGET_BENCH} >/dev/null;
   bench --site ${SOURCE_HOST} backup --with-files > ${TMP_DIR}/${RPRT};
   echo -e "         ... done";
 
-  echo -e "\n - Re-packaging database backup.";
-
   line=$(grep Config ${TMP_DIR}/${RPRT} | cut -d ' ' -f 4)
   # echo -e "\nline : ${line}"
   prefix="./${ERPNEXT_SITE_URL}/private/backups/"
@@ -69,9 +56,24 @@ pushd ${TARGET_BENCH} >/dev/null;
   part=${line#"$prefix"}
   # echo -e "part : ${part}"
   BACKUP_FILE_UID=${part%"$suffix"}
-  # echo -e "BACKUP_FILE_UID : ${BACKUP_FILE_UID}"
+  echo -e "BACKUP_FILE_UID : ${BACKUP_FILE_UID}"
+
+  pushd sites/${SOURCE_HOST} >/dev/null;
+    VIEWS_FILE_NAME="${BACKUP_FILE_UID}-views.ddl"
+    pushd private/backups >/dev/null;
+      echo -e "   - Saving database views constructors as '${VIEWS_FILE_NAME}' to site backups directory.";
+      mysql -AD ${DB_NAME} \
+           --skip-column-names \
+           --batch \
+           -e 'select CONCAT("DROP TABLE IF EXISTS ", TABLE_NAME, "; CREATE OR REPLACE VIEW ", TABLE_NAME, " AS ", VIEW_DEFINITION, "; ") as ddl FROM information_schema.views WHERE table_schema = (SELECT database() FROM dual)' \
+        > ${VIEWS_FILE_NAME};
+    popd >/dev/null;
+  popd >/dev/null;
 
 popd >/dev/null;
+
+
+echo -e "\n - Re-packaging database backup.";
 
 echo -e "   - Comment :: \"${COMMENT}\"";
 echo -e "   - Source : ${FROM}";
@@ -100,7 +102,7 @@ pushd ${TO} >/dev/null;
   echo -e "${BACKUP_FILE_UID}.tgz" > ProdBckup.txt;
   cp ProdBckup.txt BACKUP.txt;
   touch NotesForBackups.txt;
-  echo -e "${COMMENT} :: ${BACKUP_FILE_UID}.tgz" >> NotesForBackups.txt;
+  echo -e "${BACKUP_FILE_UID}.tgz ${COMMENT}" >> NotesForBackups.txt;
   echo -e "\n - The 5 most recent logged repackaging results in '$(pwd)/${pGOLD}NotesForBackups.txt${pDFLT}' are :${pGOLD}";
   tail -n 5 NotesForBackups.txt;
 popd >/dev/null;

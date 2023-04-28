@@ -19,7 +19,7 @@ export ENVIRONMENT_VARIABLES="${CURR_SCRIPT_DIR}/${ENVARS}";
 
 if [[ -L ${ENVIRONMENT_VARIABLES} ]]; then
   if [[ -e ${ENVIRONMENT_VARIABLES} ]]; then
-    echo -e "\n\n${pGREEN}Loading environment variables from '${ENVIRONMENT_VARIABLES}  ${pDFLT}'";
+    echo -e "\n\n${pGREEN}Loading environment variables from '${ENVIRONMENT_VARIABLES}'${pDFLT}";
     source ${ENVIRONMENT_VARIABLES};
   else 
     echo -e "${pRED} The local symlink '${ENVIRONMENT_VARIABLES}' to a file of environment variables is broken. Cannot proceed.${pDFLT}";

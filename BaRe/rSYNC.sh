@@ -7,6 +7,10 @@ export REMOTE_PROJECT_DIR="returnable";
 
 source ../envars.sh;
 
+declare SLAVE_HOST_ALIAS=${SERVER};
+declare SLAVE_HOST_USR=${ERP_USER_NAME};
+declare SLAVE_BENCH_NAME=${TARGET_BENCH_NAME};
+
 export REMOTE_PROJECT="${SLAVE_HOST_ALIAS}:/home/${SLAVE_HOST_USR}/${SLAVE_BENCH_NAME}/BaRe";
 
 

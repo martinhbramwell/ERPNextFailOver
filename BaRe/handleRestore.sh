@@ -86,33 +86,67 @@ function repackageWithCorrectedSiteName() {
   # exit;
 }
 
+export GOOGLE_SOCIAL_LOGIN_PACKAGE="GSLP.json";
+function buildGoogleSocialLoginPackage() {
+  local CLIENT_ID="$(echo ${GOOGLE_SL_PARMS} | jq -r .client_id)";
+  local CLIENT_SECRET="$(echo ${GOOGLE_SL_PARMS} | jq -r .client_secret)";
+  cat > ${TMP_DIR}/${GOOGLE_SOCIAL_LOGIN_PACKAGE} <<EOF
+{
+  "name": "google",
+  "enable_social_login": 1,
+  "social_login_provider": "Google",
+  "client_id": "${CLIENT_ID}",
+  "provider_name": "Google",
+  "client_secret": "${CLIENT_SECRET}",
+  "icon": "/assets/frappe/icons/social/google.svg",
+  "base_url": "https://www.googleapis.com",
+  "authorize_url": "https://accounts.google.com/o/oauth2/auth",
+  "access_token_url": "https://accounts.google.com/o/oauth2/token",
+  "redirect_url": "/api/method/frappe.www.login.login_via_google",
+  "api_endpoint": "oauth2/v2/userinfo",
+  "custom_base_url": 0,
+  "auth_url_data": "{\"scope\": \"https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email\", \"response_type\": \"code\"}",
+  "doctype": "Social Login Key"
+}
+EOF
+}
+
 function restoreSocialLoginConfig() {
-  DSIT="../sites/${ERPNEXT_SITE_URL}/"
-  PRIVATES="${DSIT}/private/files"
+
+  local DSIT="../sites/${ERPNEXT_SITE_URL}"
+
+  local PRIVATES="${DSIT}/private/files"
   source ${PRIVATES}/apikey.sh;
   # echo -e ${KEYS}
-  RESOURCE_URL="https://${ERPNEXT_SITE_URL}/api/resource";
-  SWITCHES="--location  --no-progress-meter --request";
-  AUTH_HEADER="Authorization: token ${KEYS}";
-  CONTENT_HEADER="Content-Type: application/json";
-  SLK="Social%20Login%20Key";
+  local RESOURCE_URL="https://${ERPNEXT_SITE_URL}/api/resource";
+  local SWITCHES="--location  --no-progress-meter --request";
+  local AUTH_HEADER="Authorization: token ${KEYS}";
+  local CONTENT_HEADER="Content-Type: application/json";
+  local SLK="Social%20Login%20Key";
+  local SOCIAL_LOGIN_CONF_FILE="social_login_parameters.json";
+  local SOCIAL_LOGIN_CONF=${DSIT}/${SOCIAL_LOGIN_CONF_FILE};
+  local SOCIAL_LOGIN_PARAMETERS="";
+  local GOOGLE_SL_PARMS="";
 
   # echo -e curl ${SWITCHES} GET "${RESOURCE_URL}/Company" --header "${AUTH_HEADER}"
 
-  RSLT=$(curl ${SWITCHES} GET "${RESOURCE_URL}/Company" --header "${AUTH_HEADER}");
+  local RSLT=$(curl ${SWITCHES} GET "${RESOURCE_URL}/Company" --header "${AUTH_HEADER}");
+  # echo -e $?;
+  local ERR_MSG="${pRED}     *** API call to get name of company failed. ***${pDFLT}
+    Command was : curl ${SWITCHES} GET \"${RESOURCE_URL}/Company\" --header \"${AUTH_HEADER}\"";
+  local ERR="Error"
   if [ $? != 0 ]; then
-    echo -e "${pRED}     *** API call to get name of company failed. ***${pDFLT}
-    Command was : curl ${SWITCHES} GET \"${RESOURCE_URL}/Company\" --header \"Authorization: token \${KEYS}\"";
+    echo -e "${ERR_MSG}";
+  elif [[ "${RSLT}" =~ .*"${ERR}".* ]]; then
+    echo -e "${ERR_MSG}\n${RSLT}";
   else
     # echo -e $?;
     # echo ${RSLT} | jq -r .;
     COMPANY=$(echo ${RSLT} | jq -r .data[0].name)
     # COMPANY=$(curl ${SWITCHES} DELETE "${RESOURCE_URL}/Social Login Key/google" --header "${AUTH_HEADER}" | jq -r .data);
 
-    SOCIAL_LOGIN_CONF_FILE="socials_google.json";
-    SOCIAL_LOGIN_CONF=${DSIT}/${SOCIAL_LOGIN_CONF_FILE};
     if [[ ! -f ${SOCIAL_LOGIN_CONF} ]]; then
-      echo -e "\n\n${pYELLOW}Unable to find Social Login (Google) config for ${COMPANY} at '$(pwd)${SOCIAL_LOGIN_CONF}'${pDFLT}";
+      echo -e "\n\n${pYELLOW}Unable to find Social Login (Google) config for ${COMPANY} at '$(pwd)/${SOCIAL_LOGIN_CONF}'${pDFLT}";
     else
       echo -e "\n\n${pYELLOW}Ready to restore Social Login (Google) configuration file for \"${COMPANY}\".${pDFLT}";
       echo -e "  - deleting previous Social Login config...";
@@ -122,14 +156,21 @@ function restoreSocialLoginConfig() {
       echo -e "          - deleted  (\"message\": \"${MSG}\")";
       echo -e "  - inserting correct Social Login config";
 
-      # jq -r . ${SOCIAL_LOGIN_CONF}
+      GOOGLE_SL_PARMS=$(jq -r '.[]  | select(.name == "Google") | .parameters.web' ${SOCIAL_LOGIN_CONF});
+      buildGoogleSocialLoginPackage;
 
-      # curl ${SWITCHES} POST --header "${AUTH_HEADER}" --header "${CONTENT_HEADER}" -d @${SOCIAL_LOGIN_CONF} "${RESOURCE_URL}/${SLK}";
-      RSLT=$(curl ${SWITCHES} POST --header "${AUTH_HEADER}" --header "${CONTENT_HEADER}" -d @${SOCIAL_LOGIN_CONF} "${RESOURCE_URL}/${SLK}");
+      SOCIAL_LOGIN_PARAMETERS="${TMP_DIR}/${GOOGLE_SOCIAL_LOGIN_PACKAGE}";
+
+      # cat "${SOCIAL_LOGIN_PARAMETERS}";
+      # echo -e "curl ${SWITCHES} POST --header \"${AUTH_HEADER}\" --header \"${CONTENT_HEADER}\" -d @${SOCIAL_LOGIN_PARAMETERS} \"${RESOURCE_URL}/${SLK}";
+      # curl ${SWITCHES} POST --header "${AUTH_HEADER}" --header "${CONTENT_HEADER}" -d @${SOCIAL_LOGIN_PARAMETERS} "${RESOURCE_URL}/${SLK}";
+      RSLT=$(curl ${SWITCHES} POST --header "${AUTH_HEADER}" --header "${CONTENT_HEADER}" -d @${SOCIAL_LOGIN_PARAMETERS} "${RESOURCE_URL}/${SLK}");
+
       # echo ${RSLT} | jq -r .;
       MSG=$(echo ${RSLT} | jq -r .data.social_login_provider)
-
       echo -e "          - inserted  (\"social_login_provider\": \"${MSG}\")";
+  exit;
+
     fi;
   fi;
 }
@@ -143,6 +184,8 @@ function restoreSocialLoginConfig() {
 # ";
 
 # exit;
+export OLD_SITE_ERPNEXT_VERSION="";
+export CURRENT_ERPNEXT_VERSION="";
 
 function restoreDatabase() {
 
@@ -162,9 +205,9 @@ function restoreDatabase() {
 
   export EXISTING_DB_PASSWORD=$(jq -r .db_password "${CURR_SCRIPT_DIR}/../${SITE_PATH}/${SITE_CONFIG}");
   if [[ -z ${EXISTING_DB_PASSWORD} ]]; then
-    echo -e "Unable to get MariaDB password from '${CURR_SCRIPT_DIR}/../${SITE_PATH}/${SITE_CONFIG}'.";
+    echo -e "${pRED}* * * Unable to get MariaDB password from '${CURR_SCRIPT_DIR}/../${SITE_PATH}/${SITE_CONFIG}' * * * .${pDFLT}";
   else
-    echo -e "Got MariaDB password from '${CURR_SCRIPT_DIR}/../${SITE_PATH}/${SITE_CONFIG}'.";
+    echo -e "    - Got MariaDB password from '${CURR_SCRIPT_DIR}/../${SITE_PATH}/${SITE_CONFIG}'.";
   fi;
 
 
@@ -181,8 +224,9 @@ function restoreDatabase() {
       exit;
     fi;
 
-    declare BACKUP_FILE_FULL_NAME=$(cat ${BACKUP_FILE_NAME_HOLDER});
-    declare BACKUP_FILE_DATE=$(echo ${BACKUP_FILE_FULL_NAME} | cut -d - -f 1)
+    local BACKUP_FILE_FULL_NAME=$(cat ${BACKUP_FILE_NAME_HOLDER});
+    local BACKUP_FILE_DATE=$(echo ${BACKUP_FILE_FULL_NAME} | cut -d - -f 1);
+
 
     if [ ! -f ${BACKUP_DIR}/${BACKUP_FILE_FULL_NAME} ]; then
       echo -e "\n* * * Backup '${BACKUP_FILE_FULL_NAME}' was not found at $(pwd)! * * * \n";
@@ -205,6 +249,13 @@ function restoreDatabase() {
 
     fi;
   popd >/dev/null;
+
+
+
+  # echo -e "\n${pRED}----------------- * Restore handler curtailed * --------------------------${pDFLT}
+  # ${BACKUP_DIR}/${BACKUP_FILE_FULL_NAME}";
+  # ls -la ${BACKUP_DIR}/${BACKUP_FILE_FULL_NAME};
+  # exit;
 
   pushd ${TARGET_BENCH} >/dev/null;
     if [[ "X${BACKUP_FILE_DATE}X" != "XX" ]]; then
@@ -273,18 +324,35 @@ function restoreDatabase() {
                    ${PRIV} \\
                          ${DATA}${pFAINT_BLUE}";
 
-# echo -e "\n${pRED}----------------- * Restore handler curtailed * --------------------------${pDFLT}\n${EXISTING_DB_PASSWORD}";
-# exit;
+      # echo -e "\n${pRED}----------------- * Restore handler curtailed * --------------------------${pDFLT}\n${EXISTING_DB_PASSWORD}";
+      # exit;
 
-      echo -e "${pDFLT}         started ...";
+      echo -e "${pDFLT}         started ...${pFAINT_BLUE}";
       bench --site ${ERPNEXT_SITE_URL} --force restore ${PASS} ${FILE} ${PRIV} ${DATA};
-      echo -e "         ... restored";
+      echo -e "${pDFLT}         ... restored";
+
+      # CURRENT_ERPNEXT_VERSION=$(bench version);
+      CURRENT_ERPNEXT_VERSION=$(bench version | grep erpnext | cut -d' ' -f 2 | cut -d'.' -f 1);
+      echo -e "\n      - Found current site version :: ${CURRENT_ERPNEXT_VERSION}";
 
       pushd ./sites/${ERPNEXT_SITE_URL}/private/files >/dev/null;
-        echo -e "\n      - Restoring database views";
-        echo -e "${pDFLT}         started ...";
-        mysql -AD ${ACTIVE_DATABASE} < ./ddlViews.sql;
-        echo -e "         ... restored";
+        if [[ -f erpnextVersion.txt ]]; then
+          OLD_SITE_ERPNEXT_VERSION=$(echo -e "$(cat erpnextVersion.txt | cut -d' ' -f 2)" | cut -d'.' -f 1);
+          echo -e "\n      - Found version of old site :: ${OLD_SITE_ERPNEXT_VERSION}";
+        else
+          echo -e "${pYELLOW}* * * WARNING: Unable to determine ERPNext version of old site * * * .
+                  Will assume it is version 13.
+                  A file './sites/${ERPNEXT_SITE_URL}/private/files/erpnextVersion.txt' was expected but not found.
+                  The file should contain, for example, \"erpnext 13.18.7\".
+          ${pDFLT}";
+          # OLD_SITE_ERPNEXT_VERSION=${CURRENT_ERPNEXT_VERSION};
+          OLD_SITE_ERPNEXT_VERSION=13;
+        fi;
+
+        # echo -e "\n      - Restoring database views";
+        # echo -e "${pDFLT}         started ...";
+        # mysql -AD ${ACTIVE_DATABASE} < ./ddlViews.sql;
+        # echo -e "         ... restored";
       popd >/dev/null;
 
 
@@ -302,16 +370,22 @@ function restoreDatabase() {
 
 if [[ ${SCRIPT_NAME} = ${THIS_SCRIPT} ]] ; then
   echo -e "\n - Restoring backup ...";
-  # pwd;
-  # ls -la;
-  # whoami;
 
   restoreDatabase ${1};
 
-  # echo -e "\n${pRED}----------------- Restore handler curtailed --------------------------${pDFLT}\n";
-  # exit;
-
   if [[ 1 == 1 ]]; then
+    if [[ ${CURRENT_ERPNEXT_VERSION} -gt ${OLD_SITE_ERPNEXT_VERSION} ]]; then
+      # echo -e "\n      - Must run bench 'migrate' and 'clear-cache'.${pFAINT_BLUE}";
+
+      echo -e "${pYELLOW}     - Correcting V13 to V14 discrepancies.${pDFLT} ";
+      echo -e "${pGOLD}        ~ Migrate.${pDFLT} ";
+      bench --site ${ERPNEXT_SITE_URL} migrate;
+      echo -e "${pGOLD}        ~ Clear cache.${pDFLT} ";
+      bench --site ${ERPNEXT_SITE_URL} clear-cache;
+      echo -e "${pGOLD}        ~ Enable Scheduler.${pDFLT} ";
+      bench --site ${ERPNEXT_SITE_URL} enable-scheduler;
+
+    fi;
     echo -e "\n      - Restarting ERPNext${pFAINT_BLUE}";
     sudo -A supervisorctl start all;
     echo -e "${pDFLT}            restarted";
@@ -319,14 +393,35 @@ if [[ ${SCRIPT_NAME} = ${THIS_SCRIPT} ]] ; then
     echo -e "\n - Delaying for restart to complete...";
     sleep 10;
 
+    # pushd ${TARGET_BENCH} >/dev/null;
+    #   pushd ./sites/${ERPNEXT_SITE_URL}/private/files >/dev/null;
+    #     # OLD_SITE_ERPNEXT_VERSION=$(echo -e "$(cat erpnextVersion.txt | cut -d' ' -f 2)" | cut -d'.' -f 1);
+    #     # echo -e "\n      - Found version of old site :: ${OLD_SITE_ERPNEXT_VERSION}";
+
+    #     echo -e "\n      - Restoring database views to database :: ${ACTIVE_DATABASE}";
+    #     echo -e "${pDFLT}         started ...";
+    #     cat ./ddlViews.sql;
+    #     mysql -AD ${ACTIVE_DATABASE} < ./ddlViews.sql;
+    #     echo -e "         ... restored";
+    #   popd >/dev/null;
+    # popd >/dev/null;
+
+
+    # echo -e "\n${pRED}----------------- Restore handler curtailed --------------------------${pDFLT}
+    # OLD_SITE_ERPNEXT_VERSION = ${OLD_SITE_ERPNEXT_VERSION}
+    # CURRENT_ERPNEXT_VERSION = ${CURRENT_ERPNEXT_VERSION}
+    # ";
+    # pwd;
+    # # whoami;
+    # exit;
+
     echo -e "\n - Restoring Social Login ...";
     restoreSocialLoginConfig;
     echo -e "${pDFLT}   restored";
-
-
   else
     echo -e "\n      - Restarting ERPNext ${pRED}*** SKIPPED ***${pDFLT}";
   fi;
+
 
   seconds=$(($(date +'%s') - ${start}));
   echo -e "\n\n${pGREEN}Restore completed. Elapsed time, $(secs_to_human ${seconds}) seconds
